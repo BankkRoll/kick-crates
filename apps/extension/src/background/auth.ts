@@ -25,7 +25,9 @@ export async function currentAuthStatus(): Promise<AuthStatus> {
  *
  * @returns `{ ok: true }` once the auth tab is open; `{ ok: false, error }` otherwise.
  */
-export async function startLoginFlow(): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function startLoginFlow(): Promise<
+  { ok: true } | { ok: false; error: string }
+> {
   if (!/^https:\/\/.+\.convex\.site\//.test(AUTH_START_URL)) {
     return {
       ok: false,
@@ -86,15 +88,26 @@ export function registerExternalAuthListener(
 ): void {
   chrome.runtime.onMessageExternal.addListener((msg, sender, sendResponse) => {
     (async () => {
-      console.info("[KickCrates] onMessageExternal fired from", sender.url, "origin=", sender.origin);
+      console.info(
+        "[KickCrates] onMessageExternal fired from",
+        sender.url,
+        "origin=",
+        sender.origin,
+      );
       if (!isAuthMessage(msg)) {
         console.warn("[KickCrates] rejected: unrecognized message shape", msg);
         sendResponse({ ok: false, error: "unrecognized message shape" });
         return;
       }
       if (!isAllowedSenderOrigin(sender.url ?? "")) {
-        console.warn("[KickCrates] rejected: origin not in allow-list:", sender.url);
-        sendResponse({ ok: false, error: "origin " + (sender.url ?? "?") + " not allowed" });
+        console.warn(
+          "[KickCrates] rejected: origin not in allow-list:",
+          sender.url,
+        );
+        sendResponse({
+          ok: false,
+          error: "origin " + (sender.url ?? "?") + " not allowed",
+        });
         return;
       }
       try {
@@ -107,23 +120,36 @@ export function registerExternalAuthListener(
           },
         };
         await writeSession(session);
-        console.info("[KickCrates] session written, expires", new Date(session.expiresAt).toISOString());
+        console.info(
+          "[KickCrates] session written, expires",
+          new Date(session.expiresAt).toISOString(),
+        );
         await applyAuthToReactive();
         onAuth(session);
         sendResponse({ ok: true });
         const tabId = sender.tab?.id;
         if (typeof tabId === "number") {
-          try { await chrome.tabs.remove(tabId); } catch (e) {
+          try {
+            await chrome.tabs.remove(tabId);
+          } catch (e) {
             console.warn("[KickCrates] tabs.remove failed (harmless):", e);
           }
         }
       } catch (e) {
         console.error("[KickCrates] auth handoff threw:", e);
-        sendResponse({ ok: false, error: e instanceof Error ? e.message : String(e) });
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : String(e),
+        });
       }
     })().catch((e) => {
       console.error("[KickCrates] auth handoff async reject:", e);
-      try { sendResponse({ ok: false, error: e instanceof Error ? e.message : String(e) }); } catch {}
+      try {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : String(e),
+        });
+      } catch {}
     });
     return true;
   });
@@ -152,7 +178,10 @@ function isAllowedSenderOrigin(url: string): boolean {
   try {
     const u = new URL(url);
     if (u.protocol !== "https:") return false;
-    return u.hostname.endsWith(".convex.site") || u.hostname.endsWith(".convex.cloud");
+    return (
+      u.hostname.endsWith(".convex.site") ||
+      u.hostname.endsWith(".convex.cloud")
+    );
   } catch {
     return false;
   }

@@ -8,9 +8,11 @@
  */
 export function isExtensionContextAlive(): boolean {
   try {
-    return typeof chrome !== "undefined"
-      && !!chrome.runtime
-      && typeof chrome.runtime.id === "string";
+    return (
+      typeof chrome !== "undefined" &&
+      !!chrome.runtime &&
+      typeof chrome.runtime.id === "string"
+    );
   } catch {
     return false;
   }
@@ -34,7 +36,11 @@ export async function safeSendMessage<T = unknown>(
     return (await chrome.runtime.sendMessage(msg)) as T;
   } catch (e) {
     const m = e instanceof Error ? e.message : String(e);
-    if (/extension context invalidated|message port closed|receiving end does not exist/i.test(m)) {
+    if (
+      /extension context invalidated|message port closed|receiving end does not exist/i.test(
+        m,
+      )
+    ) {
       return null;
     }
     return null;
@@ -72,7 +78,9 @@ export function assertContextOrTeardown(): boolean {
   const cbs = teardownCallbacks.slice();
   teardownCallbacks = [];
   for (const cb of cbs) {
-    try { cb(); } catch {}
+    try {
+      cb();
+    } catch {}
   }
   return false;
 }

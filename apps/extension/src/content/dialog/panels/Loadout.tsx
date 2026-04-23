@@ -29,12 +29,13 @@ export type LoadoutSlots = {
   chatFlairItemId?: Id<"items"> | null;
 };
 
-const SLOTS: Array<{ key: keyof LoadoutSlots; label: string; type: ItemType }> = [
-  { key: "badgeItemId", label: "Badge", type: "badge" },
-  { key: "nameColorItemId", label: "Name Color", type: "nameColor" },
-  { key: "profileCardItemId", label: "Profile Card", type: "profileCard" },
-  { key: "chatFlairItemId", label: "Chat Flair", type: "chatFlair" },
-];
+const SLOTS: Array<{ key: keyof LoadoutSlots; label: string; type: ItemType }> =
+  [
+    { key: "badgeItemId", label: "Badge", type: "badge" },
+    { key: "nameColorItemId", label: "Name Color", type: "nameColor" },
+    { key: "profileCardItemId", label: "Profile Card", type: "profileCard" },
+    { key: "chatFlairItemId", label: "Chat Flair", type: "chatFlair" },
+  ];
 
 /**
  * "Loadout" tab — four equippable slots (badge, name color, profile
@@ -71,7 +72,9 @@ export function LoadoutPanel(props: {
         <div class="kc-loadout">
           {SLOTS.map((slot) => {
             const equippedId = props.loadout?.[slot.key] ?? null;
-            const equipped = equippedId ? itemsById.get(equippedId as unknown as string) ?? null : null;
+            const equipped = equippedId
+              ? itemsById.get(equippedId as unknown as string) ?? null
+              : null;
             return (
               <div class="kc-slot">
                 <div
@@ -80,7 +83,12 @@ export function LoadoutPanel(props: {
                 />
                 <div class="kc-slot__meta">
                   <div class="kc-slot__label">{slot.label}</div>
-                  <div class={"kc-slot__name " + (!equipped ? "kc-slot__name--empty" : "")}>
+                  <div
+                    class={
+                      "kc-slot__name " +
+                      (!equipped ? "kc-slot__name--empty" : "")
+                    }
+                  >
                     {equipped ? equipped.name : "None equipped"}
                   </div>
                   <button
@@ -133,7 +141,9 @@ function Picker(props: {
     >
       <div class="kc-dialog" style={{ maxWidth: "640px" }}>
         <div class="kc-head">
-          <div class="kc-head__left"><div class="kc-brand__sub">Equip</div></div>
+          <div class="kc-head__left">
+            <div class="kc-brand__sub">Equip</div>
+          </div>
           <div class="kc-brand">
             <div class="kc-brand__wordmark">SELECT</div>
           </div>

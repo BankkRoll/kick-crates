@@ -32,19 +32,25 @@ export type PreviewStat = {
  * Loadout panels.
  *
  * Renders the item's art, rarity-tinted frame, type/rarity line,
- * description, a filterable list of stat rows, and up to two action
- * buttons (a panel-supplied primary and a built-in "Close"). Closes on
- * Escape, backdrop click, the X button, or the "Close" action — any of
- * which invokes `props.onClose`. Callers own the action handler and the
+ * description, a filterable list of stat rows, and up to three action
+ * buttons: the panel's primary `action`, an optional `secondaryAction`
+ * (e.g. "Sell duplicate" when the caller's primary slot is already
+ * occupied by "Claim tier"), and the built-in "Close". Closes on
+ * Escape, backdrop click, the X button, or the "Close" button — any of
+ * which invokes `props.onClose`. Callers own the handlers and the
  * `disabled` state so the same component can power "Claim tier",
- * "Equip", "Dismantle", etc., without the component knowing about
- * specific panels.
+ * "Equip", "Sell", etc. without the component knowing about panels.
  */
 export function ItemPreviewDialog(props: {
   item: PreviewItem;
   eyebrow?: string;
   stats?: Array<PreviewStat | null | undefined>;
   action?: {
+    label: string;
+    disabled?: boolean;
+    onClick: () => void;
+  } | null;
+  secondaryAction?: {
     label: string;
     disabled?: boolean;
     onClick: () => void;
@@ -136,6 +142,18 @@ export function ItemPreviewDialog(props: {
                   {props.action.label}
                 </button>
               ) : null}
+              {props.secondaryAction ? (
+                <button
+                  class="kc-btn kc-btn--secondary"
+                  disabled={props.secondaryAction.disabled}
+                  onClick={() => {
+                    props.secondaryAction!.onClick();
+                  }}
+                  type="button"
+                >
+                  {props.secondaryAction.label}
+                </button>
+              ) : null}
               <button
                 class="kc-btn kc-btn--ghost"
                 onClick={props.onClose}
@@ -153,20 +171,30 @@ export function ItemPreviewDialog(props: {
 
 function rarityHex(r: Rarity): string {
   switch (r) {
-    case "common": return "#b0b3b5";
-    case "uncommon": return "#78e48c";
-    case "rare": return "#66d4ff";
-    case "epic": return "#c78bff";
-    case "legendary": return "#ffc53d";
+    case "common":
+      return "#b0b3b5";
+    case "uncommon":
+      return "#78e48c";
+    case "rare":
+      return "#66d4ff";
+    case "epic":
+      return "#c78bff";
+    case "legendary":
+      return "#ffc53d";
   }
 }
 
 function friendlyType(t: ItemType): string {
   switch (t) {
-    case "emote": return "Chat Emote";
-    case "badge": return "Chat Badge";
-    case "nameColor": return "Name Color";
-    case "profileCard": return "Profile Card";
-    case "chatFlair": return "Chat Flair";
+    case "emote":
+      return "Chat Emote";
+    case "badge":
+      return "Chat Badge";
+    case "nameColor":
+      return "Name Color";
+    case "profileCard":
+      return "Profile Card";
+    case "chatFlair":
+      return "Chat Flair";
   }
 }

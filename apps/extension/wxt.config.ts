@@ -1,5 +1,22 @@
 import { defineConfig } from "wxt";
 
+/**
+ * WXT build configuration for the KickCrates MV3 extension.
+ *
+ * Aliases React → `preact/compat` so any dependency that imports from
+ * React at runtime resolves to our Preact tree (we bundle Preact, not
+ * React, to keep the content script small). esbuild is configured for
+ * the automatic JSX runtime with `preact` as the import source.
+ *
+ * Manifest highlights:
+ *  - `host_permissions` covers both apex and subdomains of kick.com.
+ *  - `externally_connectable` whitelists `*.convex.site` / `*.convex.cloud`
+ *    so only the Convex-hosted OAuth callback page can message this
+ *    extension id — anyone else is rejected by the background script's
+ *    origin check (see `registerExternalAuthListener`).
+ *  - `content_security_policy` allows `wasm-unsafe-eval` for the
+ *    Convex client and limits `connect-src` to our Convex tenant.
+ */
 export default defineConfig({
   srcDir: ".",
   outDir: ".output",
@@ -18,7 +35,9 @@ export default defineConfig({
       jsxImportSource: "preact",
     },
     define: {
-      "process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV ?? "development"),
+      "process.env.NODE_ENV": JSON.stringify(
+        process.env.NODE_ENV ?? "development",
+      ),
     },
   }),
   manifest: {
@@ -33,10 +52,7 @@ export default defineConfig({
       default_popup: "popup.html",
     },
     externally_connectable: {
-      matches: [
-        "https://*.convex.site/*",
-        "https://*.convex.cloud/*",
-      ],
+      matches: ["https://*.convex.site/*", "https://*.convex.cloud/*"],
     },
     content_security_policy: {
       extension_pages:

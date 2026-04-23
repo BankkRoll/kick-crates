@@ -33,12 +33,20 @@ type InventoryRow = {
   duplicates: number;
 };
 
-const CATEGORIES: Array<{ type: ItemType; label: string; Icon: () => h.JSX.Element }> = [
+const CATEGORIES: Array<{
+  type: ItemType;
+  label: string;
+  Icon: () => h.JSX.Element;
+}> = [
   { type: "emote", label: "Emotes", Icon: CategoryEmoteIcon },
   { type: "badge", label: "Badges", Icon: CategoryBadgeIcon },
   { type: "nameColor", label: "Name Colors", Icon: CategoryNameColorIcon },
   { type: "chatFlair", label: "Chat Flairs", Icon: CategoryChatFlairIcon },
-  { type: "profileCard", label: "Profile Cards", Icon: CategoryProfileCardIcon },
+  {
+    type: "profileCard",
+    label: "Profile Cards",
+    Icon: CategoryProfileCardIcon,
+  },
 ];
 
 const RARITIES: Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
@@ -187,70 +195,72 @@ export function CollectionPanel(props: {
         </div>
       </div>
 
-      {previewItemId !== null ? (() => {
-        const it = props.items.find((x) => x._id === previewItemId);
-        if (!it) return null;
-        const inv = ownedIds.get(it._id as unknown as string);
-        const owned = inv !== undefined;
-        const sellable =
-          owned &&
-          inv !== undefined &&
-          inv.duplicates > 0 &&
-          typeof it.sellValue === "number" &&
-          it.sellValue > 0;
-        return (
-          <ItemPreviewDialog
-            item={{
-              _id: it._id,
-              slug: it.slug,
-              name: it.name,
-              type: it.type,
-              rarity: it.rarity,
-              assetSvg: it.assetSvg,
-              animated: it.animated,
-              description: it.description ?? "",
-              ...(typeof it.sellValue === "number"
-                ? { sellValue: it.sellValue }
-                : {}),
-            }}
-            eyebrow="Collection"
-            stats={[
-              {
-                label: "Status",
-                value: owned ? "Owned" : "Locked",
-                accent: owned ? "primary" : "warn",
-              },
-              owned && inv && inv.duplicates > 0
-                ? {
-                    label: "Copies",
-                    value: "×" + (inv.duplicates + 1),
-                    accent: "muted",
-                  }
-                : null,
-              typeof it.sellValue === "number" && it.sellValue > 0
-                ? {
-                    label: "Sell value",
-                    value: "+" + it.sellValue + " scrap / copy",
-                    accent: "muted",
-                  }
-                : null,
-            ]}
-            action={
-              sellable
-                ? {
-                    label:
-                      "Sell 1 duplicate · +" +
-                      (it.sellValue ?? 0) +
-                      " scrap",
-                    disabled: props.sellBusy,
-                    onClick: () => props.onSell(it._id),
-                  }
-                : null
-            }
-            onClose={() => setPreviewItemId(null)}
-          />
-        );
-      })() : null}
+      {previewItemId !== null
+        ? (() => {
+            const it = props.items.find((x) => x._id === previewItemId);
+            if (!it) return null;
+            const inv = ownedIds.get(it._id as unknown as string);
+            const owned = inv !== undefined;
+            const sellable =
+              owned &&
+              inv !== undefined &&
+              inv.duplicates > 0 &&
+              typeof it.sellValue === "number" &&
+              it.sellValue > 0;
+            return (
+              <ItemPreviewDialog
+                item={{
+                  _id: it._id,
+                  slug: it.slug,
+                  name: it.name,
+                  type: it.type,
+                  rarity: it.rarity,
+                  assetSvg: it.assetSvg,
+                  animated: it.animated,
+                  description: it.description ?? "",
+                  ...(typeof it.sellValue === "number"
+                    ? { sellValue: it.sellValue }
+                    : {}),
+                }}
+                eyebrow="Collection"
+                stats={[
+                  {
+                    label: "Status",
+                    value: owned ? "Owned" : "Locked",
+                    accent: owned ? "primary" : "warn",
+                  },
+                  owned && inv && inv.duplicates > 0
+                    ? {
+                        label: "Copies",
+                        value: "×" + (inv.duplicates + 1),
+                        accent: "muted",
+                      }
+                    : null,
+                  typeof it.sellValue === "number" && it.sellValue > 0
+                    ? {
+                        label: "Sell value",
+                        value: "+" + it.sellValue + " scrap / copy",
+                        accent: "muted",
+                      }
+                    : null,
+                ]}
+                action={
+                  sellable
+                    ? {
+                        label:
+                          "Sell 1 duplicate · +" +
+                          (it.sellValue ?? 0) +
+                          " scrap",
+                        disabled: props.sellBusy,
+                        onClick: () => props.onSell(it._id),
+                      }
+                    : null
+                }
+                onClose={() => setPreviewItemId(null)}
+              />
+            );
+          })()
+        : null}
     </div>
   );
 }

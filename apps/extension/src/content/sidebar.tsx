@@ -45,15 +45,20 @@ function useSidebarState(): SidebarState {
         if (!def.active) continue;
         const st = latestStates.find((r) => r.crateDefId === def._id);
         if (def.tokenGated) {
-          if (st && st.tokensHeld > 0) { ready = true; break; }
+          if (st && st.tokensHeld > 0) {
+            ready = true;
+            break;
+          }
         } else {
           const need = (def.watchMinutesRequired ?? 0) * 60;
           if (!st || st.secondsEarned < need) continue;
           if (def.cooldownHours && st.lastOpenedAt) {
-            const nextAllowed = st.lastOpenedAt + def.cooldownHours * 3600 * 1000;
+            const nextAllowed =
+              st.lastOpenedAt + def.cooldownHours * 3600 * 1000;
             if (Date.now() < nextAllowed) continue;
           }
-          ready = true; break;
+          ready = true;
+          break;
         }
       }
       if (!cancelled) setAnyCrateReady(ready);
@@ -138,7 +143,9 @@ function SidebarItem() {
           Lv {me.level}
         </span>
       ) : null}
-      {anyCrateReady ? <span class="kc-sidebar-ready-dot" aria-label="Crate ready" /> : null}
+      {anyCrateReady ? (
+        <span class="kc-sidebar-ready-dot" aria-label="Crate ready" />
+      ) : null}
       {showNewBadge ? <span class="kc-sidebar-new-badge">New</span> : null}
     </button>
   );
@@ -202,14 +209,15 @@ function MobileMenuItem() {
       {anyCrateReady ? (
         <span class="kc-mobile-menu-btn__ready" aria-label="Crate ready" />
       ) : null}
-      {showNewBadge ? (
-        <span class="kc-mobile-menu-btn__new">New</span>
-      ) : null}
+      {showNewBadge ? <span class="kc-mobile-menu-btn__new">New</span> : null}
     </button>
   );
 }
 
-function findMobileMenuAnchor(): { parent: HTMLElement; after: HTMLElement } | null {
+function findMobileMenuAnchor(): {
+  parent: HTMLElement;
+  after: HTMLElement;
+} | null {
   const modal = document.querySelector<HTMLElement>(
     'div[class*="z-modal"] a[href="/drops"]',
   );
@@ -287,4 +295,3 @@ export function mountSidebar(): () => void {
     unmountHost(document.getElementById(MOBILE_HOST_ID));
   };
 }
-

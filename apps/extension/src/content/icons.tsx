@@ -99,14 +99,24 @@ export function CategoryEmoteIcon() {
 export function CategoryNameColorIcon() {
   return (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-      <path d="M5 19h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+      <path
+        d="M5 19h14"
+        stroke="currentColor"
+        stroke-width="1.4"
+        stroke-linecap="round"
+      />
       <path
         d="m7 16 5-11 5 11"
         stroke="currentColor"
         stroke-width="1.4"
         stroke-linejoin="round"
       />
-      <path d="M9 12h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+      <path
+        d="M9 12h6"
+        stroke="currentColor"
+        stroke-width="1.4"
+        stroke-linecap="round"
+      />
     </svg>
   );
 }

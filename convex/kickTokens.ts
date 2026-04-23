@@ -4,7 +4,11 @@
 // rotateExpiring is the cron entrypoint and walks rows within 24h of expiry;
 // per-user rate limiting on refreshToken prevents a bad refresh from
 // hammering Kick in a tight loop.
-import { internalAction, internalMutation, internalQuery } from "./_generated/server.js";
+import {
+  internalAction,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server.js";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import { aesGcmDecrypt, aesGcmEncrypt } from "./lib/crypto.js";
@@ -79,30 +83,53 @@ export const storeRefreshedToken = internalMutation({
 /** Refreshes one user's Kick tokens; rate-limited per-user to avoid refresh storms. */
 export const refreshOne = internalAction({
   args: { tokenRowId: v.id("kickTokens") },
-  handler: async (ctx, { tokenRowId }): Promise<{ ok: boolean; reason?: string }> => {
-    const row = await ctx.runQuery(internal.kickTokens.getEncryptedToken, { tokenRowId });
+  handler: async (
+    ctx,
+    { tokenRowId },
+  ): Promise<{ ok: boolean; reason?: string }> => {
+    const row = await ctx.runQuery(internal.kickTokens.getEncryptedToken, {
+      tokenRowId,
+    });
     if (!row) return { ok: false, reason: "token row missing" };
 
-    await rateLimiter.limit(ctx, "refreshToken", { key: row.userId as Id<"users">, throws: true });
+    await rateLimiter.limit(ctx, "refreshToken", {
+      key: row.userId as Id<"users">,
+      throws: true,
+    });
 
     const key = requireEncryptionKey();
     let refreshTokenPlain: string;
     try {
-      refreshTokenPlain = await aesGcmDecrypt(key, row.refreshTokenCipher, row.refreshTokenIv);
+      refreshTokenPlain = await aesGcmDecrypt(
+        key,
+        row.refreshTokenCipher,
+        row.refreshTokenIv,
+      );
     } catch (e) {
-      return { ok: false, reason: "decrypt failed: " + (e instanceof Error ? e.message : String(e)) };
+      return {
+        ok: false,
+        reason:
+          "decrypt failed: " + (e instanceof Error ? e.message : String(e)),
+      };
     }
 
     let tokens;
     try {
       tokens = await refreshTokens(refreshTokenPlain);
     } catch (e) {
-      return { ok: false, reason: "kick refresh failed: " + (e instanceof Error ? e.message : String(e)) };
+      return {
+        ok: false,
+        reason:
+          "kick refresh failed: " +
+          (e instanceof Error ? e.message : String(e)),
+      };
     }
 
     const encryptedAccess = await aesGcmEncrypt(key, tokens.access_token);
     const encryptedRefresh = await aesGcmEncrypt(key, tokens.refresh_token);
-    const scopes = tokens.scope ? tokens.scope.split(/\s+/).filter(Boolean) : row.scopes;
+    const scopes = tokens.scope
+      ? tokens.scope.split(/\s+/).filter(Boolean)
+      : row.scopes;
 
     await ctx.runMutation(internal.kickTokens.storeRefreshedToken, {
       tokenRowId,
@@ -118,7 +145,9 @@ export const refreshOne = internalAction({
 /** Cron entrypoint that finds expiring tokens and rotates each one. */
 export const rotateExpiring = internalAction({
   args: {},
-  handler: async (ctx): Promise<{ scanned: number; refreshed: number; failed: number }> => {
+  handler: async (
+    ctx,
+  ): Promise<{ scanned: number; refreshed: number; failed: number }> => {
     const rows: Array<{
       tokenRowId: Id<"kickTokens">;
       userId: Id<"users">;

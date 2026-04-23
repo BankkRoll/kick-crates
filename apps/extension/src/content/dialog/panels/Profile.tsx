@@ -35,12 +35,18 @@ type InventoryRow = {
 
 function sourceLabel(src?: string): string {
   switch (src) {
-    case "crate": return "Crate";
-    case "quest": return "Quest";
-    case "pass": return "Battle Pass";
-    case "promo": return "Gift";
-    case "admin": return "Admin";
-    default: return "";
+    case "crate":
+      return "Crate";
+    case "quest":
+      return "Quest";
+    case "pass":
+      return "Battle Pass";
+    case "promo":
+      return "Gift";
+    case "admin":
+      return "Admin";
+    default:
+      return "";
   }
 }
 
@@ -119,7 +125,9 @@ export function ProfilePanel(props: {
         <div class="kc-profile-head__meta">
           <div class="kc-profile-head__handle">@{props.username}</div>
           <div class="kc-profile-head__level-row">
-            <span class="kc-profile-head__level-num">Level {props.me?.level ?? 1}</span>
+            <span class="kc-profile-head__level-num">
+              Level {props.me?.level ?? 1}
+            </span>
             <span class="kc-profile-head__xp">
               {(props.me?.xpIntoLevel ?? 0).toLocaleString()} /{" "}
               {(props.me?.xpForNextLevel ?? 0).toLocaleString()} XP
@@ -140,7 +148,10 @@ export function ProfilePanel(props: {
             />
           </div>
         </div>
-        <button class="kc-btn kc-btn--ghost kc-btn--xs" onClick={props.onLogout}>
+        <button
+          class="kc-btn kc-btn--ghost kc-btn--xs"
+          onClick={props.onLogout}
+        >
           Sign out
         </button>
       </div>
@@ -187,13 +198,19 @@ export function ProfilePanel(props: {
             {recentDrops.map((row) => (
               <li class="kc-recent-row">
                 <div
-                  class={"kc-recent-row__art kc-recent-row__art--" + row.item.rarity}
+                  class={
+                    "kc-recent-row__art kc-recent-row__art--" + row.item.rarity
+                  }
                   dangerouslySetInnerHTML={inlineSvg(row.item.assetSvg)}
                 />
                 <div class="kc-recent-row__main">
                   <div class="kc-recent-row__name">{row.item.name}</div>
                   <div class="kc-recent-row__sub">
-                    <span class={"kc-rarity-pill kc-rarity-pill--" + row.item.rarity}>
+                    <span
+                      class={
+                        "kc-rarity-pill kc-rarity-pill--" + row.item.rarity
+                      }
+                    >
                       {row.item.rarity}
                     </span>
                     {row.acquiredFrom ? (
@@ -203,7 +220,9 @@ export function ProfilePanel(props: {
                     ) : null}
                   </div>
                 </div>
-                <time class="kc-recent-row__when">{relative(row.acquiredAt)}</time>
+                <time class="kc-recent-row__when">
+                  {relative(row.acquiredAt)}
+                </time>
               </li>
             ))}
           </ul>

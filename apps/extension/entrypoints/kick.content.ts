@@ -1,6 +1,10 @@
 import { defineContentScript } from "wxt/sandbox";
 import { startRouter } from "../src/content/router.js";
-import { startActivityTracker, sampleSignals, resetVideoSample } from "../src/content/watch.js";
+import {
+  startActivityTracker,
+  sampleSignals,
+  resetVideoSample,
+} from "../src/content/watch.js";
 import { mountKickCrates } from "../src/content/mount.js";
 import { api } from "../../../convex/_generated/api.js";
 import { authedHttpClient } from "../src/convex.js";

@@ -50,7 +50,9 @@ export function startRouter(onChange: RouteChangeCallback): () => void {
 
   const originalPush = history.pushState;
   const originalReplace = history.replaceState;
-  history.pushState = function (...args: Parameters<typeof originalPush>): void {
+  history.pushState = function (
+    ...args: Parameters<typeof originalPush>
+  ): void {
     originalPush.apply(this, args);
     queueMicrotask(tick);
   };

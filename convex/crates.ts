@@ -61,7 +61,9 @@ async function awardItem(
 ): Promise<{ wasDuplicate: boolean; scrapAwarded: number }> {
   const existing = await ctx.db
     .query("inventory")
-    .withIndex("by_user_item", (q) => q.eq("userId", userId).eq("itemId", item._id))
+    .withIndex("by_user_item", (q) =>
+      q.eq("userId", userId).eq("itemId", item._id),
+    )
     .first();
   if (existing) {
     await ctx.db.patch(existing._id, { duplicates: existing.duplicates + 1 });
@@ -86,13 +88,18 @@ export const openCrate = mutation({
 
     const crate = await ctx.db
       .query("crateDef")
-      .withIndex("by_slug", (q) => q.eq("slug", args.crateSlug as Doc<"crateDef">["slug"]))
+      .withIndex("by_slug", (q) =>
+        q.eq("slug", args.crateSlug as Doc<"crateDef">["slug"]),
+      )
       .first();
-    if (!crate || !crate.active) err("INVALID_INPUT", "crate not found or inactive");
+    if (!crate || !crate.active)
+      err("INVALID_INPUT", "crate not found or inactive");
 
     const state = await ctx.db
       .query("crateState")
-      .withIndex("by_user_crate", (q) => q.eq("userId", user._id).eq("crateDefId", crate._id))
+      .withIndex("by_user_crate", (q) =>
+        q.eq("userId", user._id).eq("crateDefId", crate._id),
+      )
       .first();
 
     const now = nowMs();
@@ -102,9 +109,11 @@ export const openCrate = mutation({
     } else {
       const requiredSec = (crate.watchMinutesRequired ?? 0) * 60;
       if (!state) err("CRATE_NOT_READY", "no progress yet");
-      if (state.secondsEarned < requiredSec) err("CRATE_NOT_READY", "watch more first");
+      if (state.secondsEarned < requiredSec)
+        err("CRATE_NOT_READY", "watch more first");
       if (crate.cooldownHours && state.lastOpenedAt) {
-        const nextAllowed = state.lastOpenedAt + crate.cooldownHours * 3600 * 1000;
+        const nextAllowed =
+          state.lastOpenedAt + crate.cooldownHours * 3600 * 1000;
         if (now < nextAllowed) err("CRATE_NOT_READY", "cooldown active");
       }
     }
@@ -131,7 +140,13 @@ export const openCrate = mutation({
       let rarity = rollRarity(rand, crate.rarityWeights);
       let pool = buckets[rarity];
       if (pool.length === 0) {
-        const order: Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
+        const order: Rarity[] = [
+          "common",
+          "uncommon",
+          "rare",
+          "epic",
+          "legendary",
+        ];
         for (const r of order) {
           if (buckets[r].length > 0) {
             rarity = r;
@@ -153,7 +168,8 @@ export const openCrate = mutation({
       });
     }
 
-    if (results.length === 0) err("SERVER_MISCONFIGURED", "roll produced no results");
+    if (results.length === 0)
+      err("SERVER_MISCONFIGURED", "roll produced no results");
 
     const featured = results.reduce((best, cur) =>
       rarityRank(cur.rarity) > rarityRank(best.rarity) ? cur : best,
@@ -173,7 +189,10 @@ export const openCrate = mutation({
     });
 
     if (state) {
-      const patch: Partial<Doc<"crateState">> = { lastOpenedAt: now, updatedAt: now };
+      const patch: Partial<Doc<"crateState">> = {
+        lastOpenedAt: now,
+        updatedAt: now,
+      };
       if (crate.tokenGated) {
         patch.tokensHeld = Math.max(0, state.tokensHeld - 1);
       } else {

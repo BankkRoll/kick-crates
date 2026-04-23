@@ -61,6 +61,8 @@ type TierReward = {
 
 type TierClaim = { tierNumber: number; claimedAt: number };
 
+type InventoryRow = { itemId: Id<"items">; duplicates: number };
+
 /**
  * "Battle Pass" tab — season dashboard with the active tier hero,
  * tier strip, and the right-rail challenge list.
@@ -81,9 +83,12 @@ export function BattlePassPanel(props: {
   quests: QuestRow[];
   tierRewards: TierReward[];
   tierClaims: TierClaim[];
+  inventory: InventoryRow[];
   onClaimQuest: (id: Id<"questDef">) => void;
   onClaimTier: (tier: number) => void;
   onClaimAllTiers: (tiers: number[]) => void;
+  onSell: (itemId: Id<"items">) => void;
+  sellBusy: boolean;
 }) {
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [previewTier, setPreviewTier] = useState<number | null>(null);
@@ -144,11 +149,14 @@ export function BattlePassPanel(props: {
   const weeklyMetaProgress = daily.filter((q) => q.claimed).length;
 
   const activeTier = selectedTier ?? nextTier;
-  const activeReward = props.tierRewards.find((r) => r.tier === activeTier) ?? null;
+  const activeReward =
+    props.tierRewards.find((r) => r.tier === activeTier) ?? null;
   const activeAsset = activeReward?.item?.assetSvg ?? "";
   const activeRarity = activeReward?.rarity ?? "uncommon";
   const activeClaimed = claimedSet.has(activeTier);
-  const activeReached = activeReward ? seasonXp >= activeReward.xpRequired : false;
+  const activeReached = activeReward
+    ? seasonXp >= activeReward.xpRequired
+    : false;
 
   return (
     <div class="kc-panel">
@@ -167,7 +175,8 @@ export function BattlePassPanel(props: {
               class="kc-bp-chip"
               style={{ marginLeft: "auto", color: "var(--kc-warn)" }}
             >
-              {daysLeft}d · +{Math.round((props.season.bonusXpMultiplier - 1) * 100)}% XP
+              {daysLeft}d · +
+              {Math.round((props.season.bonusXpMultiplier - 1) * 100)}% XP
             </span>
             <span class="kc-bp-chip kc-bp-chip--live">
               <span class="kc-bp-chip__dot" />
@@ -209,9 +218,13 @@ export function BattlePassPanel(props: {
               <div class="kc-bp__hero-tierline">
                 <span class="kc-bp__hero-tier-chip">Tier {activeTier}</span>
                 {activeClaimed ? (
-                  <span class="kc-bp__hero-status kc-bp__hero-status--claimed">Claimed</span>
+                  <span class="kc-bp__hero-status kc-bp__hero-status--claimed">
+                    Claimed
+                  </span>
                 ) : activeReached ? (
-                  <span class="kc-bp__hero-status kc-bp__hero-status--ready">Ready</span>
+                  <span class="kc-bp__hero-status kc-bp__hero-status--ready">
+                    Ready
+                  </span>
                 ) : (
                   <span class="kc-bp__hero-status">Locked</span>
                 )}
@@ -240,7 +253,9 @@ export function BattlePassPanel(props: {
                 </div>
                 <div class="kc-bp__hero-stat">
                   <span class="kc-bp__hero-stat-l">Season XP</span>
-                  <span class="kc-bp__hero-stat-v">{seasonXp.toLocaleString()}</span>
+                  <span class="kc-bp__hero-stat-v">
+                    {seasonXp.toLocaleString()}
+                  </span>
                 </div>
                 {activeTier % 5 === 0 ? (
                   <div class="kc-bp__hero-stat">
@@ -254,7 +269,9 @@ export function BattlePassPanel(props: {
                   reward={activeReward}
                   reached={activeReached}
                   claimed={activeClaimed}
-                  onClaim={() => activeReward && props.onClaimTier(activeReward.tier)}
+                  onClaim={() =>
+                    activeReward && props.onClaimTier(activeReward.tier)
+                  }
                 />
                 {activeReward?.item ? (
                   <button
@@ -280,15 +297,20 @@ export function BattlePassPanel(props: {
           >
             <div class="kc-bp__tier-badge">{currentTier}</div>
             <div
-              style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", gap: "4px" }}
+              style={{
+                flex: "1 1 auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "4px",
+              }}
             >
               <div class="kc-bp__tier-label">
                 <span>
                   Tier <strong>{currentTier}</strong> / {props.season.tierCount}
                 </span>
                 <span class="kc-bp__tier-sub">
-                  {xpIntoTier.toLocaleString()} / {xpPerTier.toLocaleString()} XP to Tier{" "}
-                  {nextTier}
+                  {xpIntoTier.toLocaleString()} / {xpPerTier.toLocaleString()}{" "}
+                  XP to Tier {nextTier}
                 </span>
               </div>
               <div class="kc-bp__tier-track">
@@ -313,7 +335,12 @@ export function BattlePassPanel(props: {
                   data-claimed={claimed ? "true" : "false"}
                   data-selected={activeTier === reward.tier ? "true" : "false"}
                   onClick={() => setSelectedTier(reward.tier)}
-                  title={"Tier " + reward.tier + " — " + (reward.item?.name ?? "reward")}
+                  title={
+                    "Tier " +
+                    reward.tier +
+                    " — " +
+                    (reward.item?.name ?? "reward")
+                  }
                 >
                   <div class="kc-tier__num">{reward.tier}</div>
                   <div
@@ -351,7 +378,8 @@ export function BattlePassPanel(props: {
               <div class="kc-bp__side-group-head">
                 <span>Daily</span>
                 <span>
-                  {dailiesDone}/{Math.max(1, daily.length)} · {formatDuration(msUntilNextUtcMidnight(now))}
+                  {dailiesDone}/{Math.max(1, daily.length)} ·{" "}
+                  {formatDuration(msUntilNextUtcMidnight(now))}
                 </span>
               </div>
               {daily.map((q) => (
@@ -386,14 +414,19 @@ export function BattlePassPanel(props: {
                     style={{
                       width:
                         weeklyMetaTotal > 0
-                          ? Math.min(100, (weeklyMetaProgress / weeklyMetaTotal) * 100).toFixed(0) + "%"
+                          ? Math.min(
+                              100,
+                              (weeklyMetaProgress / weeklyMetaTotal) * 100,
+                            ).toFixed(0) + "%"
                           : "0%",
                     }}
                   />
                 </div>
                 <span class="kc-welcome__label">
                   {weeklyMetaTotal > 0
-                    ? ((weeklyMetaProgress / weeklyMetaTotal) * 100).toFixed(0) + "%"
+                    ? ((weeklyMetaProgress / weeklyMetaTotal) * 100).toFixed(
+                        0,
+                      ) + "%"
                     : "0%"}
                 </span>
               </div>
@@ -402,60 +435,87 @@ export function BattlePassPanel(props: {
         </aside>
       </div>
 
-      {previewTier !== null ? (() => {
-        const pr = props.tierRewards.find((r) => r.tier === previewTier);
-        if (!pr || !pr.item) return null;
-        const claimed = claimedSet.has(previewTier);
-        const reached = seasonXp >= pr.xpRequired;
-        return (
-          <ItemPreviewDialog
-            item={pr.item}
-            eyebrow={`Battle Pass · Tier ${previewTier} / ${props.season!.tierCount}`}
-            stats={[
-              {
-                label: "Unlocks at",
-                value: pr.xpRequired.toLocaleString() + " Season XP",
-              },
-              {
-                label: "Season XP",
-                value: seasonXp.toLocaleString(),
-                accent: reached ? "primary" : "muted",
-              },
-              {
-                label: "Status",
-                value: claimed
-                  ? "Already claimed"
-                  : reached
-                    ? "Ready to claim"
-                    : "Locked",
-                accent: claimed ? "muted" : reached ? "primary" : "warn",
-              },
-              previewTier % 5 === 0
-                ? { label: "Tier bonus", value: "+1 Season Token", accent: "primary" }
-                : null,
-              pr.item.sellValue > 0
-                ? {
-                    label: "Sell value",
-                    value: "+" + pr.item.sellValue + " scrap / copy",
-                    accent: "muted",
-                  }
-                : null,
-            ]}
-            action={
-              !claimed && reached
-                ? {
-                    label: "Claim tier " + previewTier,
-                    onClick: () => {
-                      props.onClaimTier(previewTier);
-                      setPreviewTier(null);
-                    },
-                  }
-                : null
-            }
-            onClose={() => setPreviewTier(null)}
-          />
-        );
-      })() : null}
+      {previewTier !== null
+        ? (() => {
+            const pr = props.tierRewards.find((r) => r.tier === previewTier);
+            if (!pr || !pr.item) return null;
+            const claimed = claimedSet.has(previewTier);
+            const reached = seasonXp >= pr.xpRequired;
+            const itemId = pr.item._id;
+            const inv = props.inventory.find((r) => r.itemId === itemId);
+            const duplicates = inv?.duplicates ?? 0;
+            const sellable = duplicates > 0 && pr.item.sellValue > 0;
+            return (
+              <ItemPreviewDialog
+                item={pr.item}
+                eyebrow={`Battle Pass · Tier ${previewTier} / ${props.season!.tierCount}`}
+                stats={[
+                  {
+                    label: "Unlocks at",
+                    value: pr.xpRequired.toLocaleString() + " Season XP",
+                  },
+                  {
+                    label: "Season XP",
+                    value: seasonXp.toLocaleString(),
+                    accent: reached ? "primary" : "muted",
+                  },
+                  {
+                    label: "Status",
+                    value: claimed
+                      ? "Already claimed"
+                      : reached
+                        ? "Ready to claim"
+                        : "Locked",
+                    accent: claimed ? "muted" : reached ? "primary" : "warn",
+                  },
+                  previewTier % 5 === 0
+                    ? {
+                        label: "Tier bonus",
+                        value: "+1 Season Token",
+                        accent: "primary",
+                      }
+                    : null,
+                  pr.item.sellValue > 0
+                    ? {
+                        label: "Sell value",
+                        value: "+" + pr.item.sellValue + " scrap / copy",
+                        accent: "muted",
+                      }
+                    : null,
+                  duplicates > 0
+                    ? {
+                        label: "Copies",
+                        value: "×" + (duplicates + 1),
+                        accent: "muted",
+                      }
+                    : null,
+                ]}
+                action={
+                  !claimed && reached
+                    ? {
+                        label: "Claim tier " + previewTier,
+                        onClick: () => {
+                          props.onClaimTier(previewTier);
+                          setPreviewTier(null);
+                        },
+                      }
+                    : null
+                }
+                secondaryAction={
+                  sellable
+                    ? {
+                        label:
+                          "Sell 1 duplicate · +" + pr.item.sellValue + " scrap",
+                        disabled: props.sellBusy,
+                        onClick: () => props.onSell(itemId),
+                      }
+                    : null
+                }
+                onClose={() => setPreviewTier(null)}
+              />
+            );
+          })()
+        : null}
     </div>
   );
 }
@@ -494,18 +554,36 @@ function HeroClaimButton(props: {
   );
 }
 
-function QuestCard(props: { q: QuestRow; onClaim: (id: Id<"questDef">) => void }) {
+function QuestCard(props: {
+  q: QuestRow;
+  onClaim: (id: Id<"questDef">) => void;
+}) {
   const { q } = props;
-  const pct = Math.min(100, (q.progress / Math.max(1, q.def.requirement.target)) * 100);
+  const pct = Math.min(
+    100,
+    (q.progress / Math.max(1, q.def.requirement.target)) * 100,
+  );
   const tokenReward = q.def.crateTokenReward ?? 0;
   return (
-    <div class="kc-quest" data-claimable={q.completed && !q.claimed ? "true" : "false"}>
+    <div
+      class="kc-quest"
+      data-claimable={q.completed && !q.claimed ? "true" : "false"}
+    >
       <div class="kc-quest__top">
         <div class="kc-quest__name">{q.def.name}</div>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "6px",
+            flexWrap: "wrap",
+            justifyContent: "flex-end",
+          }}
+        >
           <span class="kc-quest__xp">+{q.def.xpReward} XP</span>
           {q.def.scrapReward > 0 ? (
-            <span class="kc-quest__xp kc-quest__xp--scrap">+{q.def.scrapReward} scrap</span>
+            <span class="kc-quest__xp kc-quest__xp--scrap">
+              +{q.def.scrapReward} scrap
+            </span>
           ) : null}
           {tokenReward > 0 ? (
             <span
@@ -522,7 +600,9 @@ function QuestCard(props: { q: QuestRow; onClaim: (id: Id<"questDef">) => void }
       <div class="kc-quest__progress">
         <div class="kc-quest__track">
           <div
-            class={"kc-quest__fill " + (q.completed ? "kc-quest__fill--done" : "")}
+            class={
+              "kc-quest__fill " + (q.completed ? "kc-quest__fill--done" : "")
+            }
             style={{ width: pct.toFixed(0) + "%" }}
           />
         </div>
@@ -548,35 +628,50 @@ function QuestCard(props: { q: QuestRow; onClaim: (id: Id<"questDef">) => void }
 
 function rarityHex(r: Rarity): string {
   switch (r) {
-    case "common": return "#9fc7a6";
-    case "uncommon": return "#78e48c";
-    case "rare": return "#66d4ff";
-    case "epic": return "#c78bff";
-    case "legendary": return "#ffd866";
+    case "common":
+      return "#9fc7a6";
+    case "uncommon":
+      return "#78e48c";
+    case "rare":
+      return "#66d4ff";
+    case "epic":
+      return "#c78bff";
+    case "legendary":
+      return "#ffd866";
   }
 }
 
 function friendlyType(t: string): string {
   switch (t) {
-    case "emote": return "Emote";
-    case "badge": return "Badge";
-    case "nameColor": return "Name Color";
-    case "profileCard": return "Profile Card";
-    case "chatFlair": return "Chat Flair";
-    default: return "Cosmetic";
+    case "emote":
+      return "Emote";
+    case "badge":
+      return "Badge";
+    case "nameColor":
+      return "Name Color";
+    case "profileCard":
+      return "Profile Card";
+    case "chatFlair":
+      return "Chat Flair";
+    default:
+      return "Cosmetic";
   }
 }
 
 function msUntilNextUtcMidnight(ts: number): number {
   const d = new Date(ts);
-  const next = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
+  const next = Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate() + 1,
+  );
   return Math.max(0, next - ts);
 }
 
 function msUntilNextUtcMonday(ts: number): number {
   const d = new Date(ts);
   const day = d.getUTCDay();
-  const daysUntilMonday = ((8 - day) % 7) || 7;
+  const daysUntilMonday = (8 - day) % 7 || 7;
   const next = Date.UTC(
     d.getUTCFullYear(),
     d.getUTCMonth(),

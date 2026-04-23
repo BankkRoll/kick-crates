@@ -20,7 +20,9 @@ export async function requireUser(
   if (!user) err("UNAUTHORIZED", "user not found for token subject");
   if (user.bannedAt) err("USER_BANNED", "this account has been banned");
 
-  const jti = (identity as unknown as { tokenIdentifier?: string; jti?: string }).jti;
+  const jti = (
+    identity as unknown as { tokenIdentifier?: string; jti?: string }
+  ).jti;
   if (jti) {
     const token = await ctx.db
       .query("sessionTokens")

@@ -14,7 +14,10 @@ import {
 } from "../src/background/heartbeat.js";
 import { applyAuthToReactive, authedHttpClient } from "../src/convex.js";
 import { api } from "../../../convex/_generated/api.js";
-import { installFlushHooks, record as recordTelemetry } from "../src/telemetry.js";
+import {
+  installFlushHooks,
+  record as recordTelemetry,
+} from "../src/telemetry.js";
 import type { InternalMessage } from "../src/messaging.js";
 
 /**

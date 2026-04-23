@@ -40,6 +40,10 @@ export type KickCratesErrorCode =
   | "KICK_API_ERROR";
 
 /** Throws a structured ConvexError the extension client can discriminate on `code`. */
-export function err(code: KickCratesErrorCode, message?: string, meta?: Record<string, unknown>): never {
+export function err(
+  code: KickCratesErrorCode,
+  message?: string,
+  meta?: Record<string, unknown>,
+): never {
   throw new ConvexError({ code, message: message ?? code, ...(meta ?? {}) });
 }

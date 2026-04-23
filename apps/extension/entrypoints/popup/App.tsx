@@ -17,7 +17,9 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    chrome.runtime.sendMessage({ type: "auth/status" }).then((s: AuthStatus) => setAuth(s));
+    chrome.runtime
+      .sendMessage({ type: "auth/status" })
+      .then((s: AuthStatus) => setAuth(s));
   }, []);
 
   const login = useCallback(async () => {
@@ -68,10 +70,15 @@ export function App() {
       ) : !auth.signedIn ? (
         <>
           <p class="p-sub">
-            Battle pass, crates, and XP for watching Kick. Sign in to start earning.
+            Battle pass, crates, and XP for watching Kick. Sign in to start
+            earning.
           </p>
           <div class="p-actions">
-            <button class="p-btn p-btn--primary" onClick={login} disabled={busy}>
+            <button
+              class="p-btn p-btn--primary"
+              onClick={login}
+              disabled={busy}
+            >
               {busy ? "Opening…" : "Sign in with Kick"}
             </button>
           </div>
@@ -94,8 +101,8 @@ export function App() {
             </div>
           </div>
           <p class="p-sub">
-            The full UI lives on kick.com. Open Kick to earn XP, open crates, and
-            claim quests.
+            The full UI lives on kick.com. Open Kick to earn XP, open crates,
+            and claim quests.
           </p>
           <div class="p-actions">
             <button class="p-btn p-btn--primary" onClick={openKick}>

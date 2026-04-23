@@ -13,9 +13,10 @@ export const clientConfig = query({
   handler: async (ctx) => {
     const rows = await ctx.db.query("configFlags").collect();
     const byKey = new Map(rows.map((r) => [r.key, r.value] as const));
-    const minExtVersion = typeof byKey.get(MIN_EXTENSION_VERSION_FLAG_KEY) === "string"
-      ? (byKey.get(MIN_EXTENSION_VERSION_FLAG_KEY) as string)
-      : "0.0.0";
+    const minExtVersion =
+      typeof byKey.get(MIN_EXTENSION_VERSION_FLAG_KEY) === "string"
+        ? (byKey.get(MIN_EXTENSION_VERSION_FLAG_KEY) as string)
+        : "0.0.0";
     const features: FeatureFlags =
       typeof byKey.get(ENABLED_FEATURES_FLAG_KEY) === "object" &&
       byKey.get(ENABLED_FEATURES_FLAG_KEY) !== null

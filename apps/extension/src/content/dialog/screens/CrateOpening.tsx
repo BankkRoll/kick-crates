@@ -499,7 +499,7 @@ function Dock(props: {
         {props.slots.map((r, i) => {
           const filled = i < props.dockedCount;
           const item = filled
-            ? (props.itemLookup.get(r.itemId as unknown as string) ?? null)
+            ? props.itemLookup.get(r.itemId as unknown as string) ?? null
             : null;
           const justFilled = filled && i === props.dockedCount - 1;
           return (

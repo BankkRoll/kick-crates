@@ -30,7 +30,8 @@ const SKIP_PATH_PREFIXES = [
  * @returns   Lowercased slug, or `null` if this URL isn't a channel.
  */
 export function parseChannelSlugFromLocation(loc: Location): string | null {
-  if (loc.hostname !== "kick.com" && !loc.hostname.endsWith(".kick.com")) return null;
+  if (loc.hostname !== "kick.com" && !loc.hostname.endsWith(".kick.com"))
+    return null;
   const path = loc.pathname.replace(/\/+$/, "");
   if (!path || path === "/") return null;
   for (const skip of SKIP_PATH_PREFIXES) {

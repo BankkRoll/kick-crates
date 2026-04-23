@@ -1,0 +1,98 @@
+name: Bug report
+description: Report something in KickCrates that is broken or behaving incorrectly.
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report. Please fill out the sections below — issues without reproduction steps are likely to be closed.
+
+        **Security-sensitive bug?** Stop and follow [SECURITY.md](../../blob/main/SECURITY.md) instead of opening a public issue.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I am on the latest build of the extension (reload it from `chrome://extensions` if unsure).
+          required: true
+        - label: This is not a security-sensitive report (if it is, I will follow SECURITY.md instead).
+          required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+      placeholder: "Opening a crate from the sidebar shows a spinner forever and never resolves."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: "The crate opens, reveals a reward, and the scrap balance updates."
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps someone else can follow to see the bug.
+      value: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where does the bug live?
+      options:
+        - Extension UI (dialog / sidebar / panel)
+        - Extension background / messaging
+        - Auth flow (Kick OAuth, session tokens)
+        - Convex backend (mutations / queries)
+        - XP / scrap / crates economy
+        - Battle pass / seasons
+        - Anti-cheat / rate limiting
+        - Build / dev setup
+        - Docs
+        - Unsure
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser + version
+      placeholder: "Chrome 131.0.6778.86, Firefox 133.0, etc."
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: "Windows 11, macOS 15.2, Ubuntu 24.04"
+    validations:
+      required: true
+  - type: input
+    id: ext-version
+    attributes:
+      label: Extension version
+      description: Shown on `chrome://extensions` (or `about:addons` on Firefox).
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Relevant console output
+      description: Open DevTools on the Kick page (and the background service worker) and paste anything red or suspicious.
+      render: shell
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / recordings
+      description: Drag-and-drop images or video if the bug is visual. Optional but appreciated.

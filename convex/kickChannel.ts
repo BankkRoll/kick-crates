@@ -6,7 +6,11 @@
 // is the only public entry point — internalQuery/Mutation helpers exist
 // solely because actions cannot touch the db directly.
 
-import { action, internalMutation, internalQuery } from "./_generated/server.js";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+} from "./_generated/server.js";
 import { v } from "convex/values";
 import { internal } from "./_generated/api.js";
 import {
@@ -46,7 +50,10 @@ async function fetchAppToken(): Promise<string> {
   if (!res.ok) {
     err("KICK_API_ERROR", "client_credentials failed: " + res.status);
   }
-  const json = (await res.json()) as { access_token: string; expires_in: number };
+  const json = (await res.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
   return json.access_token;
 }
 
@@ -101,7 +108,8 @@ export const getCachedChannel = internalQuery({
     if (!row) return null;
     const val = row.value as ChannelEntry | null;
     if (!val) return null;
-    if (val.cachedAt + KICK_CHANNEL_CACHE_TTL_SECONDS * 1000 < Date.now()) return null;
+    if (val.cachedAt + KICK_CHANNEL_CACHE_TTL_SECONDS * 1000 < Date.now())
+      return null;
     return val;
   },
 });
@@ -136,7 +144,10 @@ export const storeChannelCache = internalMutation({
 /** Resolves a Kick slug to broadcaster id and live status, using token and channel caches. */
 export const lookupBySlug = action({
   args: { slug: v.string() },
-  handler: async (ctx, args): Promise<{
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
     broadcasterUserId: number;
     slug: string;
     isLive: boolean;

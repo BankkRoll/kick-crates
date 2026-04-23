@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/BankkRoll/kick-crates/blob/main/SECURITY.md
+    about: Do not open a public issue for security bugs. Follow the disclosure process in SECURITY.md instead.
+  - name: Contributing guide
+    url: https://github.com/BankkRoll/kick-crates/blob/main/CONTRIBUTING.md
+    about: Setup, code style, and PR expectations before you file an issue about how to build the project.
+  - name: Question or discussion
+    url: https://github.com/BankkRoll/kick-crates/discussions
+    about: For open-ended questions, ideas, or "how do I …" threads that aren't yet a bug or feature request.

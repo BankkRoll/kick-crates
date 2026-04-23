@@ -70,7 +70,10 @@ export async function sha256(data: string | Uint8Array): Promise<Uint8Array> {
 }
 
 /** PKCE S256 pair; 64-byte verifier exceeds RFC 7636 minimum for full 256-bit strength. */
-export async function generatePkce(): Promise<{ verifier: string; challenge: string }> {
+export async function generatePkce(): Promise<{
+  verifier: string;
+  challenge: string;
+}> {
   const verifier = toBase64Url(randomBytes(64));
   const challenge = toBase64Url(await sha256(verifier));
   return { verifier, challenge };
@@ -125,7 +128,12 @@ export async function hmacVerifyBase64Url(
   } catch {
     return false;
   }
-  return crypto.subtle.verify("HMAC", key, sigBytes as BufferSource, encoder.encode(message));
+  return crypto.subtle.verify(
+    "HMAC",
+    key,
+    sigBytes as BufferSource,
+    encoder.encode(message),
+  );
 }
 
 async function aesGcmKey(secretBase64Url: string): Promise<CryptoKey> {
@@ -231,7 +239,9 @@ export async function signExtensionJwt(params: {
   const exp = iat + params.ttlSeconds;
   const builder = new SignJWT({
     kick_user_id: params.kickUserId,
-    ...(params.extensionVersion ? { ext_version: params.extensionVersion } : {}),
+    ...(params.extensionVersion
+      ? { ext_version: params.extensionVersion }
+      : {}),
   })
     .setProtectedHeader({ alg: "RS256", kid: jwk.kid ?? "kick-crates-1" })
     .setSubject(params.userId)
@@ -258,7 +268,8 @@ export async function verifyExtensionJwt(token: string): Promise<JwtClaims> {
   if (typeof payload.jti !== "string") throw new Error("jwt: missing jti");
   if (typeof payload.iat !== "number") throw new Error("jwt: missing iat");
   if (typeof payload.exp !== "number") throw new Error("jwt: missing exp");
-  if (typeof payload.kick_user_id !== "number") throw new Error("jwt: missing kick_user_id");
+  if (typeof payload.kick_user_id !== "number")
+    throw new Error("jwt: missing kick_user_id");
   return {
     sub: payload.sub,
     jti: payload.jti,
@@ -267,7 +278,8 @@ export async function verifyExtensionJwt(token: string): Promise<JwtClaims> {
     aud: "kick-crates-extension",
     iss,
     kick_user_id: payload.kick_user_id,
-    ext_version: typeof payload.ext_version === "string" ? payload.ext_version : undefined,
+    ext_version:
+      typeof payload.ext_version === "string" ? payload.ext_version : undefined,
   };
 }
 
@@ -294,9 +306,14 @@ export async function exportPublicJwkFromPrivate(): Promise<JWK> {
     throw new Error("JWT_PRIVATE_JWK is not a private key");
   }
   const pub = await exportJWK(key);
-  const { d: _d, p: _p, q: _q, dp: _dp, dq: _dq, qi: _qi, ...publicOnly } = pub as Record<
-    string,
-    unknown
-  >;
+  const {
+    d: _d,
+    p: _p,
+    q: _q,
+    dp: _dp,
+    dq: _dq,
+    qi: _qi,
+    ...publicOnly
+  } = pub as Record<string, unknown>;
   return publicOnly as JWK;
 }

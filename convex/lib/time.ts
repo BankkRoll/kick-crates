@@ -19,14 +19,19 @@ export function dayKeyUTC(ts: number): string {
 /** ISO-8601 week key (Monday-start, Thursday-anchored) in UTC. */
 export function weekKeyUTC(ts: number): string {
   const d = new Date(ts);
-  const target = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  const target = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
   const dayNum = (target.getUTCDay() + 6) % 7;
   target.setUTCDate(target.getUTCDate() - dayNum + 3);
   const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
   const firstDayNum = (firstThursday.getUTCDay() + 6) % 7;
   firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDayNum + 3);
   const weekNum =
-    1 + Math.round((target.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    1 +
+    Math.round(
+      (target.getTime() - firstThursday.getTime()) / (7 * 24 * 60 * 60 * 1000),
+    );
   return `${target.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
 }
 
@@ -55,7 +60,7 @@ export function msUntilNextDailyResetUTC(ts: number): number {
 export function msUntilNextWeeklyResetUTC(ts: number): number {
   const d = new Date(ts);
   const day = d.getUTCDay();
-  const daysUntilMonday = ((8 - day) % 7) || 7;
+  const daysUntilMonday = (8 - day) % 7 || 7;
   const next = Date.UTC(
     d.getUTCFullYear(),
     d.getUTCMonth(),

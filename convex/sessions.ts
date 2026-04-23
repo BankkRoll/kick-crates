@@ -49,10 +49,15 @@ type Signals = {
 };
 
 function pickIntervalSeconds(): number {
-  const jitter = Math.floor(Math.random() * (HEARTBEAT_JITTER_SECONDS * 2 + 1)) -
+  const jitter =
+    Math.floor(Math.random() * (HEARTBEAT_JITTER_SECONDS * 2 + 1)) -
     HEARTBEAT_JITTER_SECONDS;
-  const raw = HEARTBEAT_MAX_INTERVAL_SECONDS - HEARTBEAT_JITTER_SECONDS + jitter;
-  return Math.max(HEARTBEAT_MIN_INTERVAL_SECONDS, Math.min(HEARTBEAT_MAX_INTERVAL_SECONDS, raw));
+  const raw =
+    HEARTBEAT_MAX_INTERVAL_SECONDS - HEARTBEAT_JITTER_SECONDS + jitter;
+  return Math.max(
+    HEARTBEAT_MIN_INTERVAL_SECONDS,
+    Math.min(HEARTBEAT_MAX_INTERVAL_SECONDS, raw),
+  );
 }
 
 function signalsPass(s: Signals): boolean {
@@ -71,7 +76,9 @@ async function getOrCreateDailyUsage(
   const dateKey = dayKeyUTC(at);
   const existing = await ctx.db
     .query("dailyUsage")
-    .withIndex("by_user_date", (q) => q.eq("userId", userId).eq("dateKey", dateKey))
+    .withIndex("by_user_date", (q) =>
+      q.eq("userId", userId).eq("dateKey", dateKey),
+    )
     .first();
   if (existing) return existing;
   const id = await ctx.db.insert("dailyUsage", {
@@ -123,7 +130,10 @@ export const start = mutation({
   },
   handler: async (ctx, args) => {
     const user = await requireUser(ctx);
-    await rateLimiter.limit(ctx, "startSession", { key: user._id, throws: true });
+    await rateLimiter.limit(ctx, "startSession", {
+      key: user._id,
+      throws: true,
+    });
 
     const now = nowMs();
 
@@ -134,7 +144,10 @@ export const start = mutation({
       .withIndex("by_key", (q) => q.eq("key", KICK_CHANNEL_CACHE_PREFIX + slug))
       .first();
     if (!cacheRow) {
-      err("INVALID_INPUT", "channel not verified — call kickChannel.lookupBySlug first");
+      err(
+        "INVALID_INPUT",
+        "channel not verified — call kickChannel.lookupBySlug first",
+      );
     }
     const cached = cacheRow.value as {
       broadcasterUserId?: number;
@@ -150,7 +163,10 @@ export const start = mutation({
       err("INVALID_INPUT", "channel cache malformed");
     }
     if (cached.cachedAt + KICK_CHANNEL_VERIFY_STALENESS_SECONDS * 1000 < now) {
-      err("INVALID_INPUT", "channel verification stale — call kickChannel.lookupBySlug again");
+      err(
+        "INVALID_INPUT",
+        "channel verification stale — call kickChannel.lookupBySlug again",
+      );
     }
     if (cached.broadcasterUserId !== args.broadcasterUserId) {
       err("INVALID_INPUT", "broadcasterUserId does not match channelSlug");
@@ -159,7 +175,9 @@ export const start = mutation({
 
     const openSessions = await ctx.db
       .query("watchSessions")
-      .withIndex("by_user_active", (q) => q.eq("userId", user._id).eq("endedAt", undefined))
+      .withIndex("by_user_active", (q) =>
+        q.eq("userId", user._id).eq("endedAt", undefined),
+      )
       .collect();
     for (const s of openSessions) {
       await endSessionInternal(ctx, s._id, "superseded", now);
@@ -209,8 +227,10 @@ export const heartbeat = mutation({
 
     const session = await ctx.db.get(args.sessionId);
     if (!session) err("SESSION_NOT_FOUND");
-    if (session.userId !== user._id) err("UNAUTHORIZED", "session does not belong to user");
-    if (session.endedAt) err("SESSION_ENDED", undefined, { reason: session.endReason });
+    if (session.userId !== user._id)
+      err("UNAUTHORIZED", "session does not belong to user");
+    if (session.endedAt)
+      err("SESSION_ENDED", undefined, { reason: session.endReason });
     if (session.currentNonce !== args.nonce) {
       await recordFraudFlag(ctx, user._id, "nonce_mismatch", 3, {
         sessionId: session._id,
@@ -221,7 +241,9 @@ export const heartbeat = mutation({
 
     const latestOpen = await ctx.db
       .query("watchSessions")
-      .withIndex("by_user_active", (q) => q.eq("userId", user._id).eq("endedAt", undefined))
+      .withIndex("by_user_active", (q) =>
+        q.eq("userId", user._id).eq("endedAt", undefined),
+      )
       .order("desc")
       .first();
     if (latestOpen && latestOpen._id !== session._id) {
@@ -230,7 +252,9 @@ export const heartbeat = mutation({
         sessionId: session._id,
         latestOpenId: latestOpen._id,
       });
-      err("SESSION_ENDED", "superseded by newer session", { reason: "superseded" });
+      err("SESSION_ENDED", "superseded by newer session", {
+        reason: "superseded",
+      });
     }
 
     const now = nowMs();
@@ -260,7 +284,10 @@ export const heartbeat = mutation({
     let xpDelta = 0;
 
     if (pass && elapsedSec > 0) {
-      const remainingDaily = Math.max(0, DAILY_XP_CAP_SECONDS - daily.totalSeconds);
+      const remainingDaily = Math.max(
+        0,
+        DAILY_XP_CAP_SECONDS - daily.totalSeconds,
+      );
       const channelKey = String(session.broadcasterUserId);
       const perChannelSoFar = daily.perChannelSeconds[channelKey] ?? 0;
       const remainingChannel = Math.max(
@@ -288,7 +315,8 @@ export const heartbeat = mutation({
     if (creditedSec > 0) {
       const newPerChannel = { ...daily.perChannelSeconds };
       const channelKey = String(session.broadcasterUserId);
-      newPerChannel[channelKey] = (newPerChannel[channelKey] ?? 0) + creditedSec;
+      newPerChannel[channelKey] =
+        (newPerChannel[channelKey] ?? 0) + creditedSec;
       const newDistinct = daily.distinctChannels.includes(channelKey)
         ? daily.distinctChannels
         : [...daily.distinctChannels, channelKey];
@@ -327,10 +355,17 @@ export const heartbeat = mutation({
 
     if (creditedSec > 0) {
       await addSecondsToCratesInline(ctx, user._id, creditedSec);
-      const minutes = Math.floor((session.activeSeconds + creditedSec) / 60) -
+      const minutes =
+        Math.floor((session.activeSeconds + creditedSec) / 60) -
         Math.floor(session.activeSeconds / 60);
       if (minutes > 0) {
-        await bumpQuestProgressInline(ctx, user._id, "watch_minutes", minutes, now);
+        await bumpQuestProgressInline(
+          ctx,
+          user._id,
+          "watch_minutes",
+          minutes,
+          now,
+        );
       }
       const channelKey = String(session.broadcasterUserId);
       const wasNewChannel = !daily.distinctChannels.includes(channelKey);
@@ -370,7 +405,8 @@ export const endByUser = mutation({
     const session = await ctx.db.get(args.sessionId);
     if (!session) err("SESSION_NOT_FOUND");
     if (session.userId !== user._id) err("UNAUTHORIZED");
-    if (session.endedAt) return { alreadyEnded: true, reason: session.endReason ?? null };
+    if (session.endedAt)
+      return { alreadyEnded: true, reason: session.endReason ?? null };
     if (session.currentNonce !== args.nonce) err("NONCE_MISMATCH");
 
     await endSessionInternal(ctx, session._id, "user_ended", nowMs());
@@ -387,7 +423,9 @@ export const currentSession = query({
     const userId = identity.subject as Id<"users">;
     const session = await ctx.db
       .query("watchSessions")
-      .withIndex("by_user_active", (q) => q.eq("userId", userId).eq("endedAt", undefined))
+      .withIndex("by_user_active", (q) =>
+        q.eq("userId", userId).eq("endedAt", undefined),
+      )
       .first();
     if (!session) return null;
     return {
@@ -411,7 +449,9 @@ export const reapStale = internalMutation({
     const now = nowMs();
     const stale = await ctx.db
       .query("watchSessions")
-      .withIndex("by_due", (q) => q.eq("endedAt", undefined).lt("nextHeartbeatDueBy", now))
+      .withIndex("by_due", (q) =>
+        q.eq("endedAt", undefined).lt("nextHeartbeatDueBy", now),
+      )
       .take(200);
     for (const s of stale) {
       await endSessionInternal(ctx, s._id, "heartbeat_missed", now);

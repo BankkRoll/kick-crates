@@ -61,7 +61,8 @@ export const me = query({
       scrap: user.scrap,
       xpIntoLevel,
       xpForNextLevel,
-      progressToNextLevel: xpForNextLevel > 0 ? Math.min(1, xpIntoLevel / xpForNextLevel) : 0,
+      progressToNextLevel:
+        xpForNextLevel > 0 ? Math.min(1, xpIntoLevel / xpForNextLevel) : 0,
       fraudFlagged: user.fraudFlagged,
       bannedAt: user.bannedAt ?? null,
       welcomeAcknowledged: user.welcomeAcknowledgedAt !== undefined,
@@ -139,7 +140,9 @@ export const myDailyUsage = query({
     const dateKey = dayKeyUTC(nowMs());
     const row = await ctx.db
       .query("dailyUsage")
-      .withIndex("by_user_date", (q) => q.eq("userId", userId).eq("dateKey", dateKey))
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", userId).eq("dateKey", dateKey),
+      )
       .first();
     if (!row) {
       return {
@@ -185,7 +188,9 @@ export const setLoadout = mutation({
       if (itemId === null) return;
       const row = await ctx.db
         .query("inventory")
-        .withIndex("by_user_item", (q) => q.eq("userId", user._id).eq("itemId", itemId))
+        .withIndex("by_user_item", (q) =>
+          q.eq("userId", user._id).eq("itemId", itemId),
+        )
         .first();
       if (!row) err("UNAUTHORIZED", "you do not own this item");
       const item = await ctx.db.get(itemId);
@@ -205,7 +210,8 @@ export const setLoadout = mutation({
       requireOwnedOfType(args.chatFlairItemId, "chatFlair"),
     ]);
 
-    const slot = <T>(v: T | null): T | undefined => (v === null ? undefined : v);
+    const slot = <T>(v: T | null): T | undefined =>
+      v === null ? undefined : v;
     const fields = {
       badgeItemId: slot(args.badgeItemId),
       nameColorItemId: slot(args.nameColorItemId),
@@ -305,7 +311,8 @@ export const logout = mutation({
       .withIndex("by_jti", (q) => q.eq("jti", args.jti))
       .first();
     if (!tok) return { ok: true };
-    if (tok.userId !== user._id) err("UNAUTHORIZED", "session token does not belong to caller");
+    if (tok.userId !== user._id)
+      err("UNAUTHORIZED", "session token does not belong to caller");
     if (tok.revokedAt) return { ok: true };
     await ctx.db.patch(tok._id, { revokedAt: Date.now() });
     return { ok: true };

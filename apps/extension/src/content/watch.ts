@@ -54,7 +54,8 @@ export function sampleSignals(): HeartbeatSignals {
   const video = findVideoElement();
   const now = Date.now();
   const tabVisible = document.visibilityState === "visible";
-  const documentHasFocus = typeof document.hasFocus === "function" ? document.hasFocus() : tabVisible;
+  const documentHasFocus =
+    typeof document.hasFocus === "function" ? document.hasFocus() : tabVisible;
 
   let videoPlaying = false;
   let videoPositionAdvanced = false;

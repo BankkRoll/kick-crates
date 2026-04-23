@@ -16,7 +16,10 @@ import { grantXp } from "./lib/seasonXp.js";
 import type { Doc, Id } from "./_generated/dataModel.js";
 import type { MutationCtx } from "./_generated/server.js";
 
-function cadenceKeyFor(cadence: Doc<"questDef">["cadence"], at: number): string {
+function cadenceKeyFor(
+  cadence: Doc<"questDef">["cadence"],
+  at: number,
+): string {
   switch (cadence) {
     case "daily":
       return dayKeyUTC(at);
@@ -37,7 +40,10 @@ async function getOrInsertProgress(
   const existing = await ctx.db
     .query("questProgress")
     .withIndex("by_user_quest_cadence", (q) =>
-      q.eq("userId", userId).eq("questDefId", def._id).eq("cadenceKey", cadenceKey),
+      q
+        .eq("userId", userId)
+        .eq("questDefId", def._id)
+        .eq("cadenceKey", cadenceKey),
     )
     .first();
   if (existing) return existing;
@@ -65,15 +71,21 @@ export async function bumpQuestProgressInline(
   if (delta <= 0) return;
   const dailyDefs = await ctx.db
     .query("questDef")
-    .withIndex("by_cadence_active", (q) => q.eq("cadence", "daily").eq("active", true))
+    .withIndex("by_cadence_active", (q) =>
+      q.eq("cadence", "daily").eq("active", true),
+    )
     .collect();
   const weeklyDefs = await ctx.db
     .query("questDef")
-    .withIndex("by_cadence_active", (q) => q.eq("cadence", "weekly").eq("active", true))
+    .withIndex("by_cadence_active", (q) =>
+      q.eq("cadence", "weekly").eq("active", true),
+    )
     .collect();
   const seasonDefs = await ctx.db
     .query("questDef")
-    .withIndex("by_cadence_active", (q) => q.eq("cadence", "season").eq("active", true))
+    .withIndex("by_cadence_active", (q) =>
+      q.eq("cadence", "season").eq("active", true),
+    )
     .collect();
   const allDefs = [...dailyDefs, ...weeklyDefs, ...seasonDefs];
   for (const def of allDefs) {
@@ -98,14 +110,18 @@ export const claim = mutation({
     await rateLimiter.limit(ctx, "claimQuest", { key: user._id, throws: true });
 
     const def = await ctx.db.get(args.questDefId);
-    if (!def || !def.active) err("INVALID_INPUT", "quest not found or inactive");
+    if (!def || !def.active)
+      err("INVALID_INPUT", "quest not found or inactive");
 
     const now = nowMs();
     const cadenceKey = cadenceKeyFor(def.cadence, now);
     const prog = await ctx.db
       .query("questProgress")
       .withIndex("by_user_quest_cadence", (q) =>
-        q.eq("userId", user._id).eq("questDefId", def._id).eq("cadenceKey", cadenceKey),
+        q
+          .eq("userId", user._id)
+          .eq("questDefId", def._id)
+          .eq("cadenceKey", cadenceKey),
       )
       .first();
 
@@ -192,15 +208,21 @@ export const listActive = query({
       await Promise.all([
         ctx.db
           .query("questDef")
-          .withIndex("by_cadence_active", (q) => q.eq("cadence", "daily").eq("active", true))
+          .withIndex("by_cadence_active", (q) =>
+            q.eq("cadence", "daily").eq("active", true),
+          )
           .collect(),
         ctx.db
           .query("questDef")
-          .withIndex("by_cadence_active", (q) => q.eq("cadence", "weekly").eq("active", true))
+          .withIndex("by_cadence_active", (q) =>
+            q.eq("cadence", "weekly").eq("active", true),
+          )
           .collect(),
         ctx.db
           .query("questDef")
-          .withIndex("by_cadence_active", (q) => q.eq("cadence", "season").eq("active", true))
+          .withIndex("by_cadence_active", (q) =>
+            q.eq("cadence", "season").eq("active", true),
+          )
           .collect(),
       ])
     ).flat();
@@ -221,7 +243,10 @@ export const listActive = query({
         const prog = await ctx.db
           .query("questProgress")
           .withIndex("by_user_quest_cadence", (q) =>
-            q.eq("userId", userId).eq("questDefId", def._id).eq("cadenceKey", cadenceKey),
+            q
+              .eq("userId", userId)
+              .eq("questDefId", def._id)
+              .eq("cadenceKey", cadenceKey),
           )
           .first();
         if (prog) {

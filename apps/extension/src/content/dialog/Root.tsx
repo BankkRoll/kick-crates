@@ -429,13 +429,17 @@ function DialogContents() {
         totalTokensAwarded: number;
       };
       if (r.claimed.length === 0) {
-        setError("Nothing to claim — these tiers were already claimed or unreached.");
+        setError(
+          "Nothing to claim — these tiers were already claimed or unreached.",
+        );
         return;
       }
       const first = r.claimed[0]!.tierNumber;
       const last = r.claimed[r.claimed.length - 1]!.tierNumber;
       const rangeLabel =
-        r.claimed.length === 1 ? "Tier " + first : "Tiers " + first + "–" + last;
+        r.claimed.length === 1
+          ? "Tier " + first
+          : "Tiers " + first + "–" + last;
       const subtitle =
         r.claimed.length === 1
           ? r.claimed[0]!.wasDuplicate
@@ -488,24 +492,27 @@ function DialogContents() {
     }
   }, []);
 
-  const sellItem = useCallback(async (itemId: Id<"items">) => {
-    if (sellBusy) return;
-    setError(null);
-    setSellBusy(true);
-    try {
-      await applyAuthToReactive();
-      const client = getReactiveClient();
-      if (!client) {
-        setError("Convex URL not configured.");
-        return;
+  const sellItem = useCallback(
+    async (itemId: Id<"items">) => {
+      if (sellBusy) return;
+      setError(null);
+      setSellBusy(true);
+      try {
+        await applyAuthToReactive();
+        const client = getReactiveClient();
+        if (!client) {
+          setError("Convex URL not configured.");
+          return;
+        }
+        await client.mutation(api.scrap.sellItem, { itemId, quantity: 1 });
+      } catch (e) {
+        setError(humanError(e instanceof Error ? e.message : String(e)));
+      } finally {
+        setSellBusy(false);
       }
-      await client.mutation(api.scrap.sellItem, { itemId, quantity: 1 });
-    } catch (e) {
-      setError(humanError(e instanceof Error ? e.message : String(e)));
-    } finally {
-      setSellBusy(false);
-    }
-  }, [sellBusy]);
+    },
+    [sellBusy],
+  );
 
   const acknowledgeWelcome = useCallback(async () => {
     try {
@@ -669,9 +676,12 @@ function DialogContents() {
           quests={quests}
           tierRewards={tierRewards}
           tierClaims={tierClaims}
+          inventory={inventory}
           onClaimQuest={claimQuest}
           onClaimTier={claimTier}
           onClaimAllTiers={claimAllTiers}
+          onSell={sellItem}
+          sellBusy={sellBusy}
         />
       ) : null}
       {tab === "collection" ? (

@@ -80,13 +80,18 @@ export async function exchangeCodeForTokens(params: {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    err("OAUTH_EXCHANGE_FAILED", `kick token exchange failed: ${res.status} ${text}`);
+    err(
+      "OAUTH_EXCHANGE_FAILED",
+      `kick token exchange failed: ${res.status} ${text}`,
+    );
   }
   return (await res.json()) as KickTokenResponse;
 }
 
 /** Rotates a Kick refresh token; returns a new access + refresh pair. */
-export async function refreshTokens(refreshToken: string): Promise<KickTokenResponse> {
+export async function refreshTokens(
+  refreshToken: string,
+): Promise<KickTokenResponse> {
   const { clientId, clientSecret } = requireClientCreds();
   const body = new URLSearchParams({
     grant_type: "refresh_token",

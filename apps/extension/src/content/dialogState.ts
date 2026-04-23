@@ -9,7 +9,11 @@ export function openDialog(): void {
   open = true;
   document.documentElement.classList.add("kc-no-scroll");
   for (const l of listeners) {
-    try { l(true); } catch (e) { console.error("[KickCrates] listener threw:", e); }
+    try {
+      l(true);
+    } catch (e) {
+      console.error("[KickCrates] listener threw:", e);
+    }
   }
 }
 
@@ -19,7 +23,11 @@ export function closeDialog(): void {
   open = false;
   document.documentElement.classList.remove("kc-no-scroll");
   for (const l of listeners) {
-    try { l(false); } catch (e) { console.error("[KickCrates] listener threw:", e); }
+    try {
+      l(false);
+    } catch (e) {
+      console.error("[KickCrates] listener threw:", e);
+    }
   }
 }
 

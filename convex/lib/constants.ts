@@ -101,7 +101,12 @@ export function levelFromTotalXp(totalXp: number): number {
 
 export type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 export type CrateSlug = "daily" | "weekly" | "monthly" | "season";
-export type ItemType = "emote" | "badge" | "nameColor" | "profileCard" | "chatFlair";
+export type ItemType =
+  | "emote"
+  | "badge"
+  | "nameColor"
+  | "profileCard"
+  | "chatFlair";
 
 export const KICK_API_BASE = "https://api.kick.com/public/v1";
 export const KICK_OAUTH_AUTHORIZE = "https://id.kick.com/oauth/authorize";

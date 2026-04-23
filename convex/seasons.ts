@@ -372,8 +372,7 @@ export const claimEligibleTiers = mutation({
         });
       }
 
-      const tokensAwarded =
-        tierNumber % 5 === 0 && seasonCrate ? 1 : 0;
+      const tokensAwarded = tierNumber % 5 === 0 && seasonCrate ? 1 : 0;
 
       await ctx.db.insert("tierClaims", {
         userId: user._id,

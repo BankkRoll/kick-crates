@@ -65,7 +65,7 @@ async function awardItem(
     .first();
   if (existing) {
     await ctx.db.patch(existing._id, { duplicates: existing.duplicates + 1 });
-    return { wasDuplicate: true, scrapAwarded: item.scrapValueOnDupe };
+    return { wasDuplicate: true, scrapAwarded: item.sellValue };
   }
   await ctx.db.insert("inventory", {
     userId,

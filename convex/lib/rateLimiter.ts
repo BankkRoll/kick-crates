@@ -10,6 +10,7 @@ export const rateLimiter = new RateLimiter(components.rateLimiter, {
   claimQuest: { kind: "token bucket", rate: 60, period: HOUR, capacity: 10 },
   claimTier: { kind: "token bucket", rate: 40, period: HOUR, capacity: 5 },
   setLoadout: { kind: "token bucket", rate: 60, period: HOUR, capacity: 10 },
+  sellItem: { kind: "token bucket", rate: 120, period: HOUR, capacity: 20 },
   refreshToken: { kind: "token bucket", rate: 30, period: HOUR, capacity: 5 },
   buyCrateToken: { kind: "token bucket", rate: 30, period: HOUR, capacity: 5 },
   telemetry: { kind: "token bucket", rate: 120, period: HOUR, capacity: 30 },

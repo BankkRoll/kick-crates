@@ -141,7 +141,7 @@ export type TierReward = {
     assetSvg: string;
     animated: boolean;
     description: string;
-    scrapValueOnDupe: number;
+    sellValue: number;
   } | null;
 };
 
@@ -217,6 +217,7 @@ function DialogContents() {
   const [tierClaims, setTierClaims] = useState<TierClaim[]>([]);
   const [tab, setTab] = useState<TabKey>("crates");
   const [busy, setBusy] = useState(false);
+  const [sellBusy, setSellBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reveal, setReveal] = useState<CrateOpenResult | null>(null);
   const [welcomeKit, setWelcomeKit] = useState<WelcomeKit | null>(null);
@@ -487,6 +488,25 @@ function DialogContents() {
     }
   }, []);
 
+  const sellItem = useCallback(async (itemId: Id<"items">) => {
+    if (sellBusy) return;
+    setError(null);
+    setSellBusy(true);
+    try {
+      await applyAuthToReactive();
+      const client = getReactiveClient();
+      if (!client) {
+        setError("Convex URL not configured.");
+        return;
+      }
+      await client.mutation(api.scrap.sellItem, { itemId, quantity: 1 });
+    } catch (e) {
+      setError(humanError(e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSellBusy(false);
+    }
+  }, [sellBusy]);
+
   const acknowledgeWelcome = useCallback(async () => {
     try {
       await applyAuthToReactive();
@@ -655,7 +675,12 @@ function DialogContents() {
         />
       ) : null}
       {tab === "collection" ? (
-        <CollectionPanel items={items} inventory={inventory} />
+        <CollectionPanel
+          items={items}
+          inventory={inventory}
+          onSell={sellItem}
+          sellBusy={sellBusy}
+        />
       ) : null}
       {tab === "profile" ? (
         <ProfilePanel

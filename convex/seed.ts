@@ -456,7 +456,7 @@ export const seedSeason1 = internalMutation({
         }),
         animated: it.animated === true,
         description: it.description,
-        scrapValueOnDupe: SCRAP_VALUE_PER_RARITY[it.rarity],
+        sellValue: SCRAP_VALUE_PER_RARITY[it.rarity],
         retired: false,
       };
       if (existingItem) {

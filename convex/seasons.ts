@@ -90,7 +90,7 @@ export const listTierRewards = query({
               assetSvg: item.assetSvg,
               animated: item.animated,
               description: item.description ?? "",
-              scrapValueOnDupe: item.scrapValueOnDupe,
+              sellValue: item.sellValue,
             }
           : null,
       };
@@ -174,7 +174,7 @@ export const claimTier = mutation({
         duplicates: existingInv.duplicates + 1,
       });
       wasDuplicate = true;
-      scrapAwarded = item.scrapValueOnDupe;
+      scrapAwarded = item.sellValue;
     } else {
       await ctx.db.insert("inventory", {
         userId: user._id,
@@ -361,7 +361,7 @@ export const claimEligibleTiers = mutation({
           duplicates: existingInv.duplicates + 1,
         });
         wasDuplicate = true;
-        scrapAwarded = item.scrapValueOnDupe;
+        scrapAwarded = item.sellValue;
       } else {
         await ctx.db.insert("inventory", {
           userId: user._id,

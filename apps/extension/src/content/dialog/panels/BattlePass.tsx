@@ -55,7 +55,7 @@ type TierReward = {
     assetSvg: string;
     animated: boolean;
     description: string;
-    scrapValueOnDupe: number;
+    sellValue: number;
   } | null;
 };
 
@@ -433,10 +433,10 @@ export function BattlePassPanel(props: {
               previewTier % 5 === 0
                 ? { label: "Tier bonus", value: "+1 Season Token", accent: "primary" }
                 : null,
-              pr.item.scrapValueOnDupe > 0
+              pr.item.sellValue > 0
                 ? {
-                    label: "Duplicate value",
-                    value: "+" + pr.item.scrapValueOnDupe + " scrap",
+                    label: "Sell value",
+                    value: "+" + pr.item.sellValue + " scrap / copy",
                     accent: "muted",
                   }
                 : null,

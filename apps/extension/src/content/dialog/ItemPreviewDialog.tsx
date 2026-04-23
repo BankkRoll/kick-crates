@@ -17,7 +17,7 @@ export type PreviewItem = {
   assetSvg: string;
   animated: boolean;
   description: string;
-  scrapValueOnDupe?: number;
+  sellValue?: number;
 };
 
 /** One label/value row shown below the hero; `null`/`undefined` entries are filtered so callers can conditionally include rows without branching. */

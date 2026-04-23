@@ -103,7 +103,7 @@ export const bootstrap = query({
                   assetSvg: item.assetSvg,
                   animated: item.animated,
                   description: item.description ?? "",
-                  scrapValueOnDupe: item.scrapValueOnDupe,
+                  sellValue: item.sellValue,
                 }
               : null,
           };

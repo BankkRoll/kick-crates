@@ -24,7 +24,7 @@ type SeasonItem = {
   assetSvg: string;
   animated: boolean;
   description?: string;
-  scrapValueOnDupe?: number;
+  sellValue?: number;
 };
 
 type InventoryRow = {
@@ -56,6 +56,8 @@ const RARITIES: Rarity[] = ["common", "uncommon", "rare", "epic", "legendary"];
 export function CollectionPanel(props: {
   items: SeasonItem[];
   inventory: InventoryRow[];
+  onSell: (itemId: Id<"items">) => void;
+  sellBusy: boolean;
 }) {
   const [selectedType, setSelectedType] = useState<ItemType>("emote");
   const [previewItemId, setPreviewItemId] = useState<Id<"items"> | null>(null);
@@ -190,6 +192,12 @@ export function CollectionPanel(props: {
         if (!it) return null;
         const inv = ownedIds.get(it._id as unknown as string);
         const owned = inv !== undefined;
+        const sellable =
+          owned &&
+          inv !== undefined &&
+          inv.duplicates > 0 &&
+          typeof it.sellValue === "number" &&
+          it.sellValue > 0;
         return (
           <ItemPreviewDialog
             item={{
@@ -201,8 +209,8 @@ export function CollectionPanel(props: {
               assetSvg: it.assetSvg,
               animated: it.animated,
               description: it.description ?? "",
-              ...(typeof it.scrapValueOnDupe === "number"
-                ? { scrapValueOnDupe: it.scrapValueOnDupe }
+              ...(typeof it.sellValue === "number"
+                ? { sellValue: it.sellValue }
                 : {}),
             }}
             eyebrow="Collection"
@@ -219,14 +227,26 @@ export function CollectionPanel(props: {
                     accent: "muted",
                   }
                 : null,
-              typeof it.scrapValueOnDupe === "number" && it.scrapValueOnDupe > 0
+              typeof it.sellValue === "number" && it.sellValue > 0
                 ? {
-                    label: "Duplicate value",
-                    value: "+" + it.scrapValueOnDupe + " scrap",
+                    label: "Sell value",
+                    value: "+" + it.sellValue + " scrap / copy",
                     accent: "muted",
                   }
                 : null,
             ]}
+            action={
+              sellable
+                ? {
+                    label:
+                      "Sell 1 duplicate · +" +
+                      (it.sellValue ?? 0) +
+                      " scrap",
+                    disabled: props.sellBusy,
+                    onClick: () => props.onSell(it._id),
+                  }
+                : null
+            }
             onClose={() => setPreviewItemId(null)}
           />
         );

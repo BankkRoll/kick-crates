@@ -178,7 +178,7 @@ export default defineSchema({
     assetSvg: v.string(),
     animated: v.boolean(),
     description: v.optional(v.string()),
-    scrapValueOnDupe: v.number(),
+    sellValue: v.number(),
     retired: v.boolean(),
   })
     .index("by_season_rarity", ["seasonId", "rarity"])

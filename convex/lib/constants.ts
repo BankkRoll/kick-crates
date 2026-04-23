@@ -68,6 +68,9 @@ export const SCRAP_VALUE_PER_RARITY: Record<Rarity, number> = {
   legendary: 1500,
 };
 
+/** Upper bound on `sellItem` quantity per call; protects the mutation against pathological inputs while leaving plenty of headroom for bulk sells. */
+export const SELL_QUANTITY_CAP = 100;
+
 export const XP_CURVE_BASE = 180;
 export const XP_CURVE_EXPONENT = 1.35;
 

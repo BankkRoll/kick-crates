@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.output/
+.wxt/
+.DS_Store
+*.log
+.env
+.env.local
+.env.*.local
+convex/_generated/
+.vscode/
+.idea/
+*.crx
+*.pem
+*.zip
+coverage/
+.turbo/

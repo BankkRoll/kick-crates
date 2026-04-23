@@ -1,0 +1,35 @@
+{
+  "name": "kick-crates",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Third-party Kick.com battle pass, crates, and XP progression system delivered as a browser extension.",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n convex,ext -c cyan,magenta \"pnpm dev:convex\" \"pnpm dev:ext\"",
+    "dev:convex": "convex dev",
+    "dev:ext": "pnpm --filter @kick-crates/extension dev",
+    "build": "pnpm --filter @kick-crates/extension build && convex deploy",
+    "build:ext": "pnpm --filter @kick-crates/extension build",
+    "deploy:convex": "convex deploy",
+    "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @kick-crates/extension typecheck",
+    "lint": "pnpm --filter \"*\" run lint"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.3"
+  },
+  "dependencies": {
+    "@convex-dev/rate-limiter": "^0.2.11",
+    "@dicebear/core": "^9.4.2",
+    "@dicebear/fun-emoji": "^9.4.2",
+    "@dicebear/rings": "^9.4.2",
+    "@dicebear/shapes": "^9.4.2",
+    "convex": "^1.17.4",
+    "jose": "^6.2.2"
+  },
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=20.11"
+  }
+}

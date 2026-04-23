@@ -3,6 +3,8 @@ dist/
 .output/
 .wxt/
 .DS_Store
+Thumbs.db
+desktop.ini
 *.log
 .env
 .env.local
@@ -13,5 +15,10 @@ convex/_generated/
 *.crx
 *.pem
 *.zip
+web-ext-artifacts/
 coverage/
 .turbo/
+*.tsbuildinfo
+.eslintcache
+.cache/
+tmp/

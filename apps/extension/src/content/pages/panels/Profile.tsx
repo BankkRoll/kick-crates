@@ -1,9 +1,25 @@
 import { applyAuthToReactive, getReactiveClient } from "../../../convex.js";
-import { useEffect, useState } from "preact/hooks";
+import { useEffect, useMemo, useState } from "preact/hooks";
 
 import type { Id } from "../../../../../../convex/_generated/dataModel.js";
+import { ItemPreviewDialog } from "../../dialogs/ItemPreviewDialog.jsx";
 import { api } from "../../../../../../convex/_generated/api.js";
 import { inlineSvg } from "../../svgUri.js";
+
+type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+type ItemType = "emote" | "badge" | "nameColor" | "profileCard" | "chatFlair";
+
+type SeasonItem = {
+  _id: Id<"items">;
+  slug: string;
+  name: string;
+  type: ItemType;
+  rarity: Rarity;
+  assetSvg: string;
+  animated: boolean;
+  description?: string;
+  sellValue?: number;
+};
 
 type Me = {
   id: Id<"users">;
@@ -73,10 +89,20 @@ export function ProfilePanel(props: {
   username: string;
   avatar: string | null;
   inventory: InventoryRow[];
+  items: SeasonItem[];
   totalItemsInSeason: number;
   onLogout: () => void;
+  onSell: (itemId: Id<"items">) => void;
+  sellBusy: boolean;
 }) {
   const [daily, setDaily] = useState<DailyUsage | null>(null);
+  const [previewItemId, setPreviewItemId] = useState<Id<"items"> | null>(null);
+
+  const itemsById = useMemo(() => {
+    const m = new Map<string, SeasonItem>();
+    for (const it of props.items) m.set(it._id as unknown as string, it);
+    return m;
+  }, [props.items]);
 
   useEffect(() => {
     let active = true;
@@ -149,7 +175,7 @@ export function ProfilePanel(props: {
           </div>
         </div>
         <button
-          class="kc-btn kc-btn--ghost kc-btn--xs"
+          class="kc-btn kc-btn--danger kc-btn--xs"
           onClick={props.onLogout}
         >
           Sign out
@@ -197,32 +223,40 @@ export function ProfilePanel(props: {
           <ul class="kc-recent-list">
             {recentDrops.map((row) => (
               <li class="kc-recent-row">
-                <div
-                  class={
-                    "kc-recent-row__art kc-recent-row__art--" + row.item.rarity
-                  }
-                  dangerouslySetInnerHTML={inlineSvg(row.item.assetSvg)}
-                />
-                <div class="kc-recent-row__main">
-                  <div class="kc-recent-row__name">{row.item.name}</div>
-                  <div class="kc-recent-row__sub">
-                    <span
-                      class={
-                        "kc-rarity-pill kc-rarity-pill--" + row.item.rarity
-                      }
-                    >
-                      {row.item.rarity}
-                    </span>
-                    {row.acquiredFrom ? (
-                      <span class="kc-recent-row__source">
-                        {sourceLabel(row.acquiredFrom)}
+                <button
+                  type="button"
+                  class="kc-recent-row__btn"
+                  onClick={() => setPreviewItemId(row.itemId)}
+                  title={"Open " + row.item.name}
+                >
+                  <div
+                    class={
+                      "kc-recent-row__art kc-recent-row__art--" +
+                      row.item.rarity
+                    }
+                    dangerouslySetInnerHTML={inlineSvg(row.item.assetSvg)}
+                  />
+                  <div class="kc-recent-row__main">
+                    <div class="kc-recent-row__name">{row.item.name}</div>
+                    <div class="kc-recent-row__sub">
+                      <span
+                        class={
+                          "kc-rarity-pill kc-rarity-pill--" + row.item.rarity
+                        }
+                      >
+                        {row.item.rarity}
                       </span>
-                    ) : null}
+                      {row.acquiredFrom ? (
+                        <span class="kc-recent-row__source">
+                          {sourceLabel(row.acquiredFrom)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <time class="kc-recent-row__when">
-                  {relative(row.acquiredAt)}
-                </time>
+                  <time class="kc-recent-row__when">
+                    {relative(row.acquiredAt)}
+                  </time>
+                </button>
               </li>
             ))}
           </ul>
@@ -248,6 +282,61 @@ export function ProfilePanel(props: {
           actively watching streams — no bots, no background grinding.
         </p>
       </div>
+
+      {previewItemId !== null
+        ? (() => {
+            const inv = props.inventory.find((r) => r.itemId === previewItemId);
+            if (!inv) return null;
+            const seasonItem = itemsById.get(
+              previewItemId as unknown as string,
+            );
+            const sellValue = seasonItem?.sellValue;
+            return (
+              <ItemPreviewDialog
+                item={{
+                  _id: inv.itemId,
+                  slug: inv.item.slug,
+                  name: inv.item.name,
+                  type: inv.item.type as ItemType,
+                  rarity: inv.item.rarity,
+                  assetSvg: inv.item.assetSvg,
+                  animated: inv.item.animated,
+                  description: seasonItem?.description ?? "",
+                  ...(typeof sellValue === "number" ? { sellValue } : {}),
+                }}
+                eyebrow={
+                  inv.acquiredFrom
+                    ? "From " + sourceLabel(inv.acquiredFrom)
+                    : "Recent drop"
+                }
+                stats={[
+                  {
+                    label: "Acquired",
+                    value: relative(inv.acquiredAt),
+                    accent: "muted",
+                  },
+                  {
+                    label: "Copies",
+                    value: "×" + (inv.duplicates + 1),
+                    accent: "muted",
+                  },
+                  typeof sellValue === "number" && sellValue > 0
+                    ? {
+                        label: "Sell value",
+                        value: "+" + sellValue + " scrap / copy",
+                        accent: "muted",
+                      }
+                    : null,
+                ]}
+                owned
+                duplicates={inv.duplicates}
+                onSell={props.onSell}
+                sellBusy={props.sellBusy}
+                onClose={() => setPreviewItemId(null)}
+              />
+            );
+          })()
+        : null}
     </div>
   );
 }

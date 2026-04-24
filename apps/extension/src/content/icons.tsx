@@ -39,6 +39,23 @@ export function CrateIconOutline() {
   );
 }
 
+/** Down-pointing chevron used as the expand/collapse affordance on the
+ * sidebar submenu. The containing element rotates it 180° when the
+ * submenu is open via `.kc-sidebar-chevron--open`. */
+export function ChevronDownIcon() {
+  return (
+    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg" fill="none">
+      <path
+        d="m3 6 5 5 5-5"
+        stroke="currentColor"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+}
+
 /** Simple 16×16 "X" glyph. */
 export function CloseIcon() {
   return (

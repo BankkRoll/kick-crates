@@ -1,10 +1,44 @@
+import type { h } from "preact";
 import { render } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../../../../convex/_generated/api.js";
-import { getReactiveClient, applyAuthToReactive } from "../convex.js";
-import { subscribeDialog, toggleDialog } from "./dialogState.js";
-import { CrateIconFilled, CrateIconOutline } from "./icons.js";
 import { isExtensionContextAlive } from "../chromeSafe.js";
+import { applyAuthToReactive, getReactiveClient } from "../convex.js";
+import {
+  IconCrate,
+  IconGrid,
+  IconProfile,
+  IconStar,
+  IconUser,
+} from "./Root.jsx";
+import { ChevronDownIcon, CrateIconFilled, CrateIconOutline } from "./icons.js";
+import {
+  isPagePath,
+  navigateToPage,
+  pagePathFor,
+  parsePageTabFromLocation,
+  type PageTabKey,
+} from "./pageRouter.js";
+
+type SubItem = {
+  key: PageTabKey;
+  label: string;
+  icon: () => h.JSX.Element;
+};
+
+const SUB_ITEMS: readonly SubItem[] = [
+  { key: "crates", label: "Crates", icon: IconCrate },
+  { key: "battlepass", label: "Battle Pass", icon: IconStar },
+  { key: "collection", label: "Collection", icon: IconGrid },
+  { key: "loadout", label: "Loadout", icon: IconUser },
+  { key: "profile", label: "Profile", icon: IconProfile },
+];
+
+function sidebarIsExpanded(): boolean {
+  const wrapper = document.getElementById("sidebar-wrapper");
+  if (!wrapper) return false;
+  return /sidebar-expanded-width/.test(wrapper.className);
+}
 
 const HOST_ID = "kc-sidebar-item";
 const MOBILE_HOST_ID = "kc-mobile-menu-item";
@@ -113,41 +147,109 @@ function useSidebarState(): SidebarState {
 }
 
 function SidebarItem() {
-  const [open, setOpen] = useState(false);
   const { me, anyCrateReady } = useSidebarState();
+  const [active, setActive] = useState<boolean>(() => isPagePath(location));
+  const [currentTab, setCurrentTab] = useState<PageTabKey | null>(() =>
+    parsePageTabFromLocation(location),
+  );
+  const [userPref, setUserPref] = useState<boolean | null>(null);
 
-  useEffect(() => subscribeDialog(setOpen), []);
+  useEffect(() => {
+    function sync() {
+      setActive(isPagePath(location));
+      setCurrentTab(parsePageTabFromLocation(location));
+    }
+    window.addEventListener("popstate", sync);
+    const interval = window.setInterval(sync, 1000);
+    return () => {
+      window.removeEventListener("popstate", sync);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const showNewBadge = !me || me.totalXp === 0;
+  const expanded = userPref ?? active;
 
-  function onClick(ev: Event) {
+  function onParentClick(ev: Event) {
     ev.preventDefault();
     ev.stopPropagation();
-    toggleDialog();
+    if (!sidebarIsExpanded()) {
+      // Collapsed icon-only sidebar has no room for a submenu; fall back
+      // to the single-click navigation users had before.
+      navigateToPage("crates");
+      setActive(true);
+      setCurrentTab("crates");
+      return;
+    }
+    setUserPref(!expanded);
+  }
+
+  function onSubItemClick(ev: Event, key: PageTabKey) {
+    ev.preventDefault();
+    ev.stopPropagation();
+    navigateToPage(key);
+    setActive(true);
+    setCurrentTab(key);
+    setUserPref(true);
   }
 
   return (
-    <button
-      class="kc-sidebar-btn"
-      data-open={open ? "true" : "false"}
-      onClick={onClick}
-      type="button"
-      aria-haspopup="dialog"
-      aria-expanded={open}
-      aria-label="Open KickCrates"
-    >
-      {open ? <CrateIconFilled /> : <CrateIconOutline />}
-      <span class="kc-sidebar-label">Crates</span>
-      {me ? (
-        <span class="kc-sidebar-level" title="Level">
-          Lv {me.level}
+    <div class="kc-sidebar-group" data-expanded={expanded ? "true" : "false"}>
+      <a
+        class="kc-sidebar-btn"
+        data-open={active ? "true" : "false"}
+        href={pagePathFor("crates")}
+        onClick={onParentClick}
+        aria-label="Open KickCrates"
+        aria-expanded={expanded}
+      >
+        {active ? <CrateIconFilled /> : <CrateIconOutline />}
+        <span class="kc-sidebar-label">KickCrates</span>
+        {me ? (
+          <span class="kc-sidebar-level" title="Level">
+            Lv {me.level}
+          </span>
+        ) : null}
+        {anyCrateReady ? (
+          <span class="kc-sidebar-ready-dot" aria-label="Crate ready" />
+        ) : null}
+        {showNewBadge ? <span class="kc-sidebar-new-badge">New</span> : null}
+        <span
+          class={
+            "kc-sidebar-chevron" + (expanded ? " kc-sidebar-chevron--open" : "")
+          }
+          aria-hidden="true"
+        >
+          <ChevronDownIcon />
         </span>
-      ) : null}
-      {anyCrateReady ? (
-        <span class="kc-sidebar-ready-dot" aria-label="Crate ready" />
-      ) : null}
-      {showNewBadge ? <span class="kc-sidebar-new-badge">New</span> : null}
-    </button>
+      </a>
+      <ul
+        class="kc-sidebar-submenu"
+        data-expanded={expanded ? "true" : "false"}
+        role="menu"
+      >
+        {SUB_ITEMS.map((item) => {
+          const Icon = item.icon;
+          const isCurrent = active && currentTab === item.key;
+          return (
+            <li class="kc-sidebar-subitem" role="none" key={item.key}>
+              <a
+                class="kc-sidebar-sublink"
+                data-active={isCurrent ? "true" : "false"}
+                href={pagePathFor(item.key)}
+                onClick={(ev) => onSubItemClick(ev, item.key)}
+                role="menuitem"
+              >
+                <span class="kc-sidebar-subicon" aria-hidden="true">
+                  <Icon />
+                </span>
+                <span class="kc-sidebar-sublabel">{item.label}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -187,14 +289,13 @@ function MobileMenuItem() {
   const showNewBadge = !me || me.totalXp === 0;
 
   return (
-    <button
-      type="button"
+    <a
       class="kc-mobile-menu-btn"
-      aria-haspopup="dialog"
+      href={pagePathFor("crates")}
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        toggleDialog();
+        navigateToPage("crates");
       }}
     >
       <span class="kc-mobile-menu-btn__icon" aria-hidden="true">
@@ -210,7 +311,7 @@ function MobileMenuItem() {
         <span class="kc-mobile-menu-btn__ready" aria-label="Crate ready" />
       ) : null}
       {showNewBadge ? <span class="kc-mobile-menu-btn__new">New</span> : null}
-    </button>
+    </a>
   );
 }
 

@@ -1,57 +1,31 @@
-type Listener = (open: boolean) => void;
+type PreviewListener = (itemId: string) => void;
 
-let open = false;
-const listeners = new Set<Listener>();
-
-/** Opens the in-page dialog, locks the host page scroll, and notifies subscribers. No-op when already open. */
-export function openDialog(): void {
-  if (open) return;
-  open = true;
-  document.documentElement.classList.add("kc-no-scroll");
-  for (const l of listeners) {
-    try {
-      l(true);
-    } catch (e) {
-      console.error("[KickCrates] listener threw:", e);
-    }
-  }
-}
-
-/** Closes the dialog, restores host page scroll, and notifies subscribers. No-op when already closed. */
-export function closeDialog(): void {
-  if (!open) return;
-  open = false;
-  document.documentElement.classList.remove("kc-no-scroll");
-  for (const l of listeners) {
-    try {
-      l(false);
-    } catch (e) {
-      console.error("[KickCrates] listener threw:", e);
-    }
-  }
-}
-
-/** Flips the dialog between open and closed. */
-export function toggleDialog(): void {
-  if (open) closeDialog();
-  else openDialog();
-}
+const previewListeners = new Set<PreviewListener>();
 
 /**
- * Subscribes to open/close transitions.
+ * Cross-surface bus for "show me this item's details." Used by the
+ * emote picker's locked-emote click path so users tapping a gated
+ * emote in Kick's chat surface see the item preview on the
+ * KickCrates dashboard.
  *
- * The listener is invoked once synchronously with the current state so
- * consumers don't need a separate initial read.
- *
- * @returns An `unsubscribe` function.
+ * The dashboard is always rendered on the page when the user is at
+ * `/kickcrates?kc_tab=...`; when not, the listener is un-mounted
+ * and this call is a no-op (the user stays where they were). Future
+ * work: navigate to the dashboard + pass the item id via URL param
+ * so the preview works from anywhere on kick.com.
  */
-export function subscribeDialog(fn: Listener): () => void {
-  listeners.add(fn);
-  fn(open);
-  return () => listeners.delete(fn);
+export function requestItemPreview(itemId: string): void {
+  for (const l of previewListeners) {
+    try {
+      l(itemId);
+    } catch (e) {
+      console.error("[KickCrates] preview listener threw:", e);
+    }
+  }
 }
 
-/** Synchronous snapshot of whether the dialog is currently open. */
-export function isOpen(): boolean {
-  return open;
+/** Subscribes to preview requests. Listener fires every time {@link requestItemPreview} is called. */
+export function subscribeItemPreview(fn: PreviewListener): () => void {
+  previewListeners.add(fn);
+  return () => previewListeners.delete(fn);
 }

@@ -1,16 +1,16 @@
-import { useMemo, useState } from "preact/hooks";
-import { h } from "preact";
-
-import type { Id } from "../../../../../../convex/_generated/dataModel.js";
+import { useEffect, useMemo, useState } from "preact/hooks";
 import {
+  CategoryBadgeIcon,
+  CategoryChatFlairIcon,
   CategoryEmoteIcon,
   CategoryNameColorIcon,
-  CategoryChatFlairIcon,
-  CategoryBadgeIcon,
   CategoryProfileCardIcon,
-} from "../../icons.js";
+} from "../../icons.jsx";
+
+import { h } from "preact";
+import type { Id } from "../../../../../../convex/_generated/dataModel.js";
+import { ItemPreviewDialog } from "../../dialogs/ItemPreviewDialog.jsx";
 import { inlineSvg } from "../../svgUri.js";
-import { ItemPreviewDialog } from "../ItemPreviewDialog.js";
 
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 type ItemType = "emote" | "badge" | "nameColor" | "profileCard" | "chatFlair";
@@ -66,9 +66,19 @@ export function CollectionPanel(props: {
   inventory: InventoryRow[];
   onSell: (itemId: Id<"items">) => void;
   sellBusy: boolean;
+  pendingPreview?: Id<"items"> | null;
+  onPendingPreviewConsumed?: () => void;
 }) {
   const [selectedType, setSelectedType] = useState<ItemType>("emote");
   const [previewItemId, setPreviewItemId] = useState<Id<"items"> | null>(null);
+
+  useEffect(() => {
+    if (!props.pendingPreview) return;
+    const target = props.items.find((x) => x._id === props.pendingPreview);
+    if (target) setSelectedType(target.type);
+    setPreviewItemId(props.pendingPreview);
+    props.onPendingPreviewConsumed?.();
+  }, [props.pendingPreview, props.items]);
 
   const ownedIds = useMemo(() => {
     const m = new Map<string, InventoryRow>();
@@ -201,12 +211,6 @@ export function CollectionPanel(props: {
             if (!it) return null;
             const inv = ownedIds.get(it._id as unknown as string);
             const owned = inv !== undefined;
-            const sellable =
-              owned &&
-              inv !== undefined &&
-              inv.duplicates > 0 &&
-              typeof it.sellValue === "number" &&
-              it.sellValue > 0;
             return (
               <ItemPreviewDialog
                 item={{
@@ -229,10 +233,10 @@ export function CollectionPanel(props: {
                     value: owned ? "Owned" : "Locked",
                     accent: owned ? "primary" : "warn",
                   },
-                  owned && inv && inv.duplicates > 0
+                  owned
                     ? {
                         label: "Copies",
-                        value: "×" + (inv.duplicates + 1),
+                        value: "×" + ((inv?.duplicates ?? 0) + 1),
                         accent: "muted",
                       }
                     : null,
@@ -244,18 +248,10 @@ export function CollectionPanel(props: {
                       }
                     : null,
                 ]}
-                action={
-                  sellable
-                    ? {
-                        label:
-                          "Sell 1 duplicate · +" +
-                          (it.sellValue ?? 0) +
-                          " scrap",
-                        disabled: props.sellBusy,
-                        onClick: () => props.onSell(it._id),
-                      }
-                    : null
-                }
+                owned={owned}
+                duplicates={inv?.duplicates ?? 0}
+                onSell={props.onSell}
+                sellBusy={props.sellBusy}
                 onClose={() => setPreviewItemId(null)}
               />
             );

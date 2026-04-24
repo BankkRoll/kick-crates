@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 
-import type { Id } from "../../../../../../convex/_generated/dataModel.js";
-import { inlineSvg } from "../../svgUri.js";
+import type { Id } from "../../../../../convex/_generated/dataModel.js";
+import { inlineSvg } from "../svgUri.js";
 
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 

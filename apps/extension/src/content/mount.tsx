@@ -1,12 +1,13 @@
-import { render } from "preact";
-import { Root } from "./dialog/Root.js";
-import { mountSidebar } from "./sidebar.js";
 import { KC_CSS } from "./styles.js";
-import { WelcomeDialog } from "./WelcomeDialog.jsx";
+import { PageRoot } from "./pages/PageRoot.jsx";
+import { WelcomeDialog } from "./dialogs/WelcomeDialog.jsx";
+import { mountSidebar } from "./sidebar.js";
+import { render } from "preact";
+import { startEmoteIntegration } from "./emotes/index.js";
 
 const STYLE_ID = "kc-style";
-const ROOT_ID = "kc-dialog-root";
 const WELCOME_ID = "kc-welcome-root";
+const PAGE_ID = "kc-page-root";
 
 /**
  * Attaches KickCrates to the current kick.com page.
@@ -14,9 +15,9 @@ const WELCOME_ID = "kc-welcome-root";
  * Performs, in order:
  *   1. Injects the extension's stylesheet into `<head>`.
  *   2. Mounts the sidebar + mobile-drawer entry buttons.
- *   3. Creates two fixed-position root hosts (`kc-dialog-root`,
- *      `kc-welcome-root`) and renders the main dialog + the pre-auth
- *      welcome dialog into them.
+ *   3. Creates two fixed-position root hosts (`kc-welcome-root`,
+ *      `kc-page-root`) and renders the pre-auth welcome dialog + the
+ *      full-page dashboard surface into them.
  *   4. Starts a `document.body` MutationObserver that re-mounts the
  *      hosts if Kick's SPA wipes them during route changes. The
  *      observer is `childList`-only (no subtree) and debounced to 200 ms
@@ -30,17 +31,7 @@ const WELCOME_ID = "kc-welcome-root";
 export function mountKickCrates(): () => void {
   injectStyles();
   const unsubSidebar = mountSidebar();
-
-  let rendered = false;
-  function renderIfNeeded(host: HTMLElement) {
-    if (rendered) return;
-    try {
-      render(<Root />, host);
-      rendered = true;
-    } catch (e) {
-      console.error("[KickCrates] dialog render failed:", e);
-    }
-  }
+  const unsubEmotes = startEmoteIntegration();
 
   let welcomeRendered = false;
   function renderWelcomeIfNeeded(host: HTMLElement) {
@@ -53,27 +44,38 @@ export function mountKickCrates(): () => void {
     }
   }
 
-  const initialHost = ensureRoot(ROOT_ID);
-  if (initialHost) renderIfNeeded(initialHost);
+  let pageRendered = false;
+  function renderPageIfNeeded(host: HTMLElement) {
+    if (pageRendered) return;
+    try {
+      render(<PageRoot />, host);
+      pageRendered = true;
+    } catch (e) {
+      console.error("[KickCrates] page render failed:", e);
+    }
+  }
 
   const initialWelcome = ensureRoot(WELCOME_ID);
   if (initialWelcome) renderWelcomeIfNeeded(initialWelcome);
 
+  const initialPage = ensureRoot(PAGE_ID);
+  if (initialPage) renderPageIfNeeded(initialPage);
+
   let pending: number | null = null;
   function check() {
     pending = null;
-    if (!document.getElementById(ROOT_ID)) {
-      const host = ensureRoot(ROOT_ID);
-      if (host) {
-        rendered = false;
-        renderIfNeeded(host);
-      }
-    }
     if (!document.getElementById(WELCOME_ID)) {
       const host = ensureRoot(WELCOME_ID);
       if (host) {
         welcomeRendered = false;
         renderWelcomeIfNeeded(host);
+      }
+    }
+    if (!document.getElementById(PAGE_ID)) {
+      const host = ensureRoot(PAGE_ID);
+      if (host) {
+        pageRendered = false;
+        renderPageIfNeeded(host);
       }
     }
   }
@@ -91,8 +93,9 @@ export function mountKickCrates(): () => void {
       pending = null;
     }
     unsubSidebar();
+    unsubEmotes();
     bodyObs.disconnect();
-    for (const id of [ROOT_ID, WELCOME_ID]) {
+    for (const id of [WELCOME_ID, PAGE_ID]) {
       const host = document.getElementById(id);
       if (!host) continue;
       try {
@@ -128,7 +131,7 @@ function ensureRoot(id: string): HTMLElement | null {
     "left: 0 !important;" +
     "width: 0 !important;" +
     "height: 0 !important;" +
-    "z-index: 2147483647 !important;" +
+    "z-index: 20 !important;" +
     "pointer-events: none !important;" +
     "display: block !important;" +
     "visibility: visible !important;" +

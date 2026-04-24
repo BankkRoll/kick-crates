@@ -26,9 +26,10 @@ All cosmetic art is generated inline at seed time (via [DiceBear](https://dicebe
 - **Welcome kit** on first sign-in: starter emote, bronze watcher badge, 100 XP, 50 scrap; announced via a pre-auth welcome dialog.
 - **Fullscreen CSGO-style crate opening** (buildup → lid-open flash → wheel spin → per-card unlock) with per-card dupe → scrap overlay.
 - **Claim reveal screen** for quest + tier claims — staged intro → walkthrough → summary with keyboard advance.
-- **Shared item preview dialog** for Battle Pass tier clicks + Collection tile clicks (locked or unlocked).
+- **Shared item preview dialog** for Battle Pass tier clicks + Collection tile clicks (locked or unlocked). Always shows a Sell control when the item is owned — enabled with "Sell 1 duplicate · +N scrap" at 2+ copies, disabled "No duplicates to sell" at 1 copy so the mechanic is never hidden.
 - **Collection view** — category filter, rarity progress bars, dupe counts on owned items, recent-drops feed tagged by source (crate / quest / pass / promo / admin).
-- **Injected into Kick's native sidebar** + the mobile profile drawer; SPA navigation picked up via `pushState`/`popstate` with a 250 ms settle before commit.
+- **Full-page dashboard** at `kick.com/kickcrates?kc_tab=<crates|battlepass|collection|loadout|profile>` — the extension hijacks whatever Kick renders at `/kickcrates` (currently a 404 shell with navbar + sidebar intact; eventually the bot profile page) and covers the main content area with the dashboard. Query-param tab selection is load-bearing: Kick only renders its full shell on top-level segments, so deeper paths like `/kickcrates/app/x` 404 into a bare body with no chrome.
+- **Accordion sidebar entry** injected into Kick's native sidebar + mobile drawer. Parent row shows your level; the 5 sub-items navigate between tabs. Cross-path nav uses a real `location.assign` so Kick re-renders the `/kickcrates` shell; same-path tab switches use `pushState` to keep state warm. Collapsed icon-only sidebar falls back to a single-click nav.
 - **Popup** for sign-in / sign-out and an "Open on Kick" shortcut.
 - **Admin feature gates** via `configFlags` — `minExtensionVersion` and `enabledFeatures` can disable features or force an upgrade without shipping a new build.
 
@@ -36,12 +37,21 @@ All cosmetic art is generated inline at seed time (via [DiceBear](https://dicebe
 
 ```
 kick-crates/
-├── convex/                  # Convex backend (schema, auth, sessions, crates, crons, seed)
-│   ├── lib/                 # svgGen, welcome constants, rateLimiter, seasonXp helper, tiers
-│   └── _generated/          # Convex codegen (git-ignored)
-├── apps/extension/          # WXT + Preact browser extension
-│   ├── entrypoints/         # kick.content.ts, background.ts, popup
-│   └── src/content/dialog/  # Root + panels + screens + shared dialogs
+├── convex/                   # Convex backend (schema, auth, sessions, crates, crons, seed)
+│   ├── lib/                  # svgGen, welcome constants, rateLimiter, seasonXp helper, tiers
+│   └── _generated/           # Convex codegen (git-ignored)
+├── apps/extension/           # WXT + Preact browser extension
+│   ├── entrypoints/          # kick.content.ts, background.ts, popup
+│   └── src/content/
+│       ├── Root.tsx          # DialogContents — the shared dashboard body
+│       ├── mount.tsx         # Injects style + mounts sidebar, welcome, page roots
+│       ├── sidebar.tsx       # Kick sidebar accordion entry (parent + 5 sub-tabs)
+│       ├── pageRouter.ts     # /kickcrates?kc_tab=<tab> parse + navigate
+│       ├── dialogState.ts    # Cross-surface item-preview bus (used by emote picker)
+│       ├── pages/            # PageRoot + panels/* (Crates, BattlePass, Collection, Loadout, Profile)
+│       ├── dialogs/          # WelcomeDialog, ItemPreviewDialog (overlay modals)
+│       ├── screens/          # CrateOpening, ClaimRevealScreen (cinematic full-bleed)
+│       └── emotes/           # Chat emote rewriter, picker injector, quick-row
 ├── scripts/generate-keys.mjs
 └── package.json
 ```
@@ -57,27 +67,29 @@ service worker                              /auth/kick/start      (httpAction)
   ├── chrome.alarms heartbeat tick
   └── ConvexHttpClient mutations             mutations:
 content script (kick.com/*)                    sessions.start / heartbeat / endByUser
-  ├── Sidebar + mobile nav injection           crates.openCrate
-  ├── SPA route detection (pushState)          quests.claim
-  ├── Video + activity sampling                seasons.claimTier
-  └── Preact dialog + screens:                 users.setLoadout / acknowledgeWelcome
-      - Root (5 tabs)                          oauth.* (internal)
-      - CrateOpening screen
-      - ClaimRevealScreen                    queries (reactive):
-      - ItemPreviewDialog                      users.me / myInventory / myWelcomeKit
-      - WelcomeDialog (pre-auth toast)         quests.listActive
-popup (Preact)                                 crates.listCrates / myCrateStates
-  ├── sign-in / sign-out                       seasons.listItems / listTierRewards / listMyTierClaims
-  └── open-on-Kick                             dashboard.bootstrap (single-RTT hydrate)
-                                               config.clientConfig
-
-                                             crons:
-                                               reap stale watch sessions (2 min)
-                                               rotate Kick user tokens (1 h)
+  ├── Accordion entry injected into            crates.openCrate
+  │    Kick's sidebar + mobile drawer         quests.claim
+  ├── Watch-session router                     seasons.claimTier
+  │    (pushState/popstate, 250ms settle)     users.setLoadout / acknowledgeWelcome
+  ├── Page router (kc_tab query key)          oauth.* (internal)
+  ├── Video + activity sampling
+  └── Preact surfaces:                       queries (reactive):
+      - PageRoot → DialogContents              users.me / myInventory / myWelcomeKit
+        (full-page dashboard, mounted           quests.listActive
+        over Kick's /kickcrates shell)         crates.listCrates / myCrateStates
+      - CrateOpening screen (cinematic)       seasons.listItems / listTierRewards / listMyTierClaims
+      - ClaimRevealScreen (cinematic)         dashboard.bootstrap (single-RTT hydrate)
+      - ItemPreviewDialog (shared modal)      config.clientConfig
+      - WelcomeDialog (first-visit modal)
+popup (Preact)                              crons:
+  ├── sign-in / sign-out                       reap stale watch sessions (2 min)
+  └── open-on-Kick                             rotate Kick user tokens (1 h)
                                                reap pendingOauth (1 h)
                                                reap old sessionTokens (6 h)
                                                reap dailyUsage / telemetry (24 h)
 ```
+
+**Page routing:** the dashboard lives at `kick.com/kickcrates?kc_tab=<tab>`. Kick's SPA renders a 404 (or bot-profile) shell at `/kickcrates` — navbar + sidebar intact — and our content script covers the main content area with the `PageRoot` → `DialogContents` tree. Switching tabs inside the dashboard uses `pushState` (same path, just swap `kc_tab`) so Convex subscriptions stay warm; navigating in from a stream or the homepage uses `location.assign` so Kick re-renders the correct shell before our surface mounts. Sub-paths like `/kickcrates/app/<tab>` are deliberately NOT used because Kick strips the shell on deeper routes. See [pageRouter.ts](apps/extension/src/content/pageRouter.ts).
 
 **XP model:** every XP grant bumps both `totalXp` (never resets, drives level) and `seasonXp` (resets on season rollover, drives Battle Pass tier). When a user's `currentSeasonId` doesn't match the active season, `seasonXp` is auto-reset to 0 before the new XP is added. See [convex/lib/seasonXp.ts](convex/lib/seasonXp.ts).
 

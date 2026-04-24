@@ -179,6 +179,100 @@ html.kc-no-scroll { overflow: hidden !important; }
   margin-left: 6px;
 }
 
+/* ═════════════════════════════════════════════════════════════════════
+   Sidebar accordion — parent button above, 5 sub-items below. The
+   parent keeps its existing kc-sidebar-btn styling for visual parity
+   with Kick's native rows; the submenu slides open underneath with
+   indented sub-rows that mirror Kick's tighter nested-link rhythm.
+   ═════════════════════════════════════════════════════════════════════ */
+.kc-sidebar-group {
+  display: contents;
+}
+.kc-sidebar-chevron {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 12px; height: 12px;
+  display: none;
+  align-items: center; justify-content: center;
+  color: var(--kc-muted);
+  transition: transform 180ms ease, color 180ms ease;
+  pointer-events: none;
+}
+.kc-sidebar-chevron svg { width: 100%; height: 100%; }
+.kc-sidebar-chevron--open { transform: translateY(-50%) rotate(180deg); color: var(--kc-text); }
+
+/* Chevron only renders in the expanded sidebar; in the icon-only
+   collapsed sidebar there's no submenu to signal. */
+#sidebar-wrapper[class*="sidebar-expanded-width"] .kc-sidebar-chevron {
+  display: inline-flex;
+}
+
+/* Also in expanded mode: push the level pill/new badge away from the
+   chevron so they don't stack. */
+#sidebar-wrapper[class*="sidebar-expanded-width"] .kc-sidebar-btn .kc-sidebar-level,
+#sidebar-wrapper[class*="sidebar-expanded-width"] .kc-sidebar-btn .kc-sidebar-new-badge,
+#sidebar-wrapper[class*="sidebar-expanded-width"] .kc-sidebar-btn .kc-sidebar-ready-dot {
+  margin-right: 16px;
+}
+
+.kc-sidebar-submenu {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 4px 8px;
+  overflow: hidden;
+}
+/* Only show submenu when expanded AND the sidebar wrapper itself is in
+   its expanded-width layout. Collapsed sidebar never shows sub-rows. */
+#sidebar-wrapper[class*="sidebar-expanded-width"]
+  .kc-sidebar-submenu[data-expanded="true"] {
+  display: flex;
+  animation: kc-sidebar-sub-open 180ms ease forwards;
+}
+@keyframes kc-sidebar-sub-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.kc-sidebar-subitem { list-style: none; }
+.kc-sidebar-sublink {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px 0 28px;
+  border-left: 2px solid transparent;
+  color: var(--kc-muted);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.kc-sidebar-sublink:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--kc-text);
+}
+.kc-sidebar-sublink[data-active="true"] {
+  color: var(--kc-primary);
+  border-left-color: var(--kc-primary);
+  background: rgba(83,252,24,0.08);
+  font-weight: 600;
+}
+.kc-sidebar-subicon {
+  flex: 0 0 auto;
+  width: 14px; height: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.kc-sidebar-subicon svg { width: 100%; height: 100%; fill: currentColor; }
+.kc-sidebar-sublabel { flex: 1 1 auto; min-width: 0; }
+
 /* Mobile nav drawer button — matches the row styling Kick uses for
    Subscriptions / Drops / Settings so it looks native inside their menu. */
 .kc-mobile-menu-btn {
@@ -1476,15 +1570,29 @@ html.kc-no-scroll { overflow: hidden !important; }
   border-top: 1px solid var(--kc-surface-2);
 }
 .kc-recent-row {
+  border-bottom: 1px solid var(--kc-surface-2);
+}
+.kc-recent-row__btn {
+  width: 100%;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: clamp(10px, 1.4vw, 14px);
-  padding: clamp(10px, 1.4vw, 14px) 0;
-  border-bottom: 1px solid var(--kc-surface-2);
+  padding: clamp(10px, 1.4vw, 14px);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: inherit;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
   transition: background 160ms ease;
 }
-.kc-recent-row:hover { background: rgba(255,255,255,0.015); }
+.kc-recent-row__btn:hover { background: rgba(255,255,255,0.025); }
+.kc-recent-row__btn:focus-visible {
+  outline: 2px solid var(--kc-rarity-uncommon);
+  outline-offset: -2px;
+}
 .kc-recent-row__art {
   width: clamp(38px, 4.6vw, 44px); height: clamp(38px, 4.6vw, 44px);
   border-radius: 8px;
@@ -2752,10 +2860,708 @@ html.kc-no-scroll { overflow: hidden !important; }
   .kc-welcome__step { align-self: flex-start; }
 }
 
+/* ═════════════════════════════════════════════════════════════════════
+   Page mode — full-viewport surface that mounts at
+   /kickcrates?kc_tab=<tab>. Rides on top of whatever Kick renders at
+   /kickcrates (a 404 today, potentially a bot-profile tomorrow),
+   covering the main content area. Query-param-on-base-path is
+   deliberate: Kick only renders its navbar + sidebar shell at top-
+   level segments, so deep paths like /kickcrates/app/x lose the
+   chrome. Uses Kick's own CSS custom properties so the layout
+   tracks navbar + sidebar size changes without us re-measuring.
+   ═════════════════════════════════════════════════════════════════════ */
+.kc-page-surface {
+  position: fixed !important;
+  top: var(--navbar-height, 56px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  background: var(--kc-bg) !important;
+  z-index: 100 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  pointer-events: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  animation: kc-fade-in 160ms ease forwards;
+}
+/* On XL (Kick's docked-sidebar breakpoint) shift right of the sidebar
+   so users can still click into channels from the nav. On smaller
+   viewports Kick's sidebar is an off-canvas drawer, so we span full
+   width. */
+@media (min-width: 1280px) {
+  .kc-page-surface {
+    left: var(--sidebar-expanded-width, 240px) !important;
+  }
+}
+
+/* When rendered inside the page surface, the dialog sheds its modal
+   shell: no fixed width, no centered drop shadow, no rise animation,
+   no rounded corners. It becomes the page body. */
+.kc-dialog--page {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-height: 100% !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+  background: var(--kc-bg) !important;
+  flex: 1 1 auto;
+}
+
+/* Hide Kick's 404 body while our page is active. Two selectors for
+   defense: the test-id (stable) and the wrapping flex div (fallback
+   for when test-ids move). The surface sits on top regardless, but
+   hiding avoids screen-readers announcing "Oops, something went
+   wrong" and keeps Kick's 404 PNG from flashing before mount. */
+html.kc-page-active [data-testid="not-found"],
+html.kc-page-active main > div:has([data-testid="not-found"]) {
+  display: none !important;
+}
+/* Body scroll is already locked by Kick's own lg:h-dvh +
+   lg:overflow-hidden classes on the body element. We deliberately
+   don't add a second overflow lock on html — users reported sidebar
+   dimming flashes which appeared correlated with this rule triggering
+   scrollbar removal on route change. The page surface owns its own
+   scroll. */
+
+/* ═════════════════════════════════════════════════════════════════════
+   PageHeader — title + stats + season chips row. Replaces the dialog's
+   modal header + tab switcher when rendered as a Kick page. Mirrors
+   Kick's own page headers (Following, Browse) for typography and
+   rhythm: big tight H1, muted subline, stats pulled to the right.
+   ═════════════════════════════════════════════════════════════════════ */
+.kc-page-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: clamp(16px, 2.4vw, 28px) clamp(16px, 2.4vw, 28px) 12px;
+  border-bottom: 1px solid var(--kc-border);
+}
+.kc-page-header__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.kc-page-header__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 300px;
+}
+.kc-page-header__h1 {
+  margin: 0;
+  font-size: clamp(24px, 2.6vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--kc-text);
+  line-height: 1.1;
+}
+.kc-page-header__sub {
+  margin: 0;
+  color: var(--kc-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  max-width: 56ch;
+}
+.kc-page-header__stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+.kc-page-header__stat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 52px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  background: var(--kc-surface-1);
+  border: 1px solid var(--kc-border);
+}
+.kc-page-header__stat-v {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--kc-text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kc-page-header__stat-l {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--kc-muted-dim);
+  line-height: 1;
+}
+.kc-page-header__xp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: var(--kc-surface-1);
+  border: 1px solid var(--kc-border);
+  min-width: 260px;
+}
+.kc-page-header__xp-lvl {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--kc-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kc-page-header__xp-track {
+  flex: 1 1 auto;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--kc-surface-2);
+  overflow: hidden;
+  min-width: 80px;
+}
+.kc-page-header__xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--kc-primary-dim), var(--kc-primary));
+  border-radius: inherit;
+  transition: width 300ms ease;
+}
+.kc-page-header__xp-num {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--kc-muted);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.kc-page-header__season {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.kc-page-header__season-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--kc-surface-2);
+  color: var(--kc-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kc-page-header__season-chip--live {
+  background: var(--kc-primary);
+  color: #06140a;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+.kc-page-header__season-chip--warn {
+  color: var(--kc-warn);
+  border: 1px solid rgba(255,176,32,0.3);
+  background: rgba(255,176,32,0.08);
+}
+.kc-page-header__season-chip-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #06140a;
+  opacity: 0.6;
+}
+
+/* In page mode, the dashboard scrolls as a page — the inner panel
+   owns the scroll area so the header stays visible above. */
+.kc-dialog--page .kc-panel {
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Kick-native look-and-feel polish. Applies to every interactive
+   surface in the app so the pages feel continuous with Kick's own UI.
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* Tabular-nums on every number the user reads in a list or comparison
+   — prevents digit-shift during live updates. */
+.kc-stat__value,
+.kc-xpbar__lbl,
+.kc-stat-tile__value,
+.kc-stat-tile__hint,
+.kc-crate__progress-label,
+.kc-quest__pct,
+.kc-quest__xp,
+.kc-tier__num,
+.kc-rarity-row__count,
+.kc-cat__count-num,
+.kc-cat__count-total,
+.kc-profile-head__level-num,
+.kc-profile-head__xp,
+.kc-bp__hero-stat-v,
+.kc-bp__tier-sub,
+.kc-bp__tier-label,
+.kc-bp__tier-badge,
+.kc-bp__claim-all-count,
+.kc-recent-row__when,
+.kc-crate-cards-badge,
+.kc-item__dup,
+.kc-sidebar-level {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Rounded-full chip/pill treatment — matches Kick's tag style
+   (English / funny / IRL pills, viewer-count pills, etc). */
+.kc-bp-chip,
+.kc-rarity-pill,
+.kc-recent-row__source {
+  border-radius: 999px !important;
+}
+/* Kick's LIVE-badge treatment — solid primary with black text. Used
+   for the "READY" state on a crate (the "click to open" signal). */
+.kc-crate-tag--ready {
+  background: var(--kc-primary) !important;
+  color: #06140a !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  padding: 3px 8px !important;
+  border-radius: 3px !important;
+  text-transform: uppercase;
+}
+
+/* Press-scale feedback on every button-like surface. Mirrors Kick's
+   own betterhover active scale affordance. */
+.kc-btn:active:not(:disabled),
+.kc-cat:active,
+.kc-tier:active,
+.kc-item:active:not(:disabled),
+.kc-sidebar-btn:active,
+.kc-sidebar-sublink:active {
+  transform: scale(0.98);
+  transition: transform 80ms ease;
+}
+
+/* ─── Corner brackets on hover — Kick's signature card affordance.
+   Four 12×12 L-shaped corners in primary green, layered via 8
+   pinpoint background gradients on a single pseudo-element. Fades
+   in on hover; also solid on active / ready / selected states so
+   the card reads as "live" without needing a pointer. */
+.kc-crate,
+.kc-item,
+.kc-tier,
+.kc-cat,
+.kc-stat-tile,
+.kc-slot,
+.kc-recent-row__btn,
+.kc-quest,
+.kc-crate-card,
+.kc-bp__hero {
+  position: relative;
+}
+.kc-crate::before,
+.kc-item::before,
+.kc-tier::before,
+.kc-cat::before,
+.kc-stat-tile::before,
+.kc-slot::before,
+.kc-recent-row__btn::before,
+.kc-quest::before,
+.kc-bp__hero::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  z-index: 3;
+  background:
+    linear-gradient(var(--kc-primary), var(--kc-primary)) top    left  / 14px 2px no-repeat,
+    linear-gradient(var(--kc-primary), var(--kc-primary)) top    left  / 2px 14px no-repeat,
+    linear-gradient(var(--kc-primary), var(--kc-primary)) top    right / 14px 2px no-repeat,
+    linear-gradient(var(--kc-primary), var(--kc-primary)) top    right / 2px 14px no-repeat,
+    linear-gradient(var(--kc-primary), var(--kc-primary)) bottom left  / 14px 2px no-repeat,
+    linear-gradient(var(--kc-primary), var(--kc-primary)) bottom left  / 2px 14px no-repeat,
+    linear-gradient(var(--kc-primary), var(--kc-primary)) bottom right / 14px 2px no-repeat,
+    linear-gradient(var(--kc-primary), var(--kc-primary)) bottom right / 2px 14px no-repeat;
+}
+.kc-crate:hover::before,
+.kc-item:hover::before,
+.kc-tier:hover::before,
+.kc-cat:hover::before,
+.kc-stat-tile:hover::before,
+.kc-slot:hover::before,
+.kc-recent-row__btn:hover::before,
+.kc-quest:hover::before,
+.kc-bp__hero:hover::before,
+.kc-crate[data-ready="true"]::before,
+.kc-tier[data-selected="true"]::before,
+.kc-cat[data-selected="true"]::before,
+.kc-item[data-owned="true"]:hover::before {
+  opacity: 1;
+}
+/* Disabled / locked cards suppress the brackets — no false affordance. */
+.kc-item[disabled]:hover::before,
+.kc-btn:disabled:hover::before {
+  opacity: 0 !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Flat aesthetic — final cascade layer.
+   Strips every border-radius, every card/chip border, and every
+   container background across the dashboard. The interactive
+   affordance becomes exclusively the hover corner brackets defined
+   above (matches Kick's gaming-UI card treatment). Content is what's
+   visible; frames are invisible until you point at them.
+   Kept in a single override block so the direction can be reversed
+   wholesale by deleting this block if we want framing back later.
+   ═════════════════════════════════════════════════════════════════════ */
+[id^="kc-"] *,
+[id^="kc-"] ::before,
+[id^="kc-"] ::after {
+  border-radius: 0 !important;
+}
+
+/* Card / tile / panel surfaces lose their borders + filled chrome —
+   scoped to PAGE context only. The dialog shell (.kc-dialog when NOT
+   .kc-dialog--page) and standalone preview modal (.kc-preview) keep
+   their framing so actual dialogs still feel like dialogs. */
+.kc-crate,
+.kc-item,
+.kc-tier,
+.kc-cat,
+.kc-stat-tile,
+.kc-slot,
+.kc-recent-row__btn,
+.kc-quest,
+.kc-bp__hero,
+.kc-crate-card,
+.kc-page-header__stat,
+.kc-page-header__xp,
+.kc-dialog--page,
+.kc-dialog--page .kc-panel,
+.kc-dialog--page .kc-section,
+.kc-meta-progress {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Dividers / separators via bottom-border on the page header stay,
+   slimmed to match Kick's outline-decorative hairlines. */
+.kc-page-header {
+  border-bottom: 1px solid var(--kc-border) !important;
+}
+
+/* Chips keep uppercase / spacing treatment but go from pill to
+   square. The LIVE-style badge still reads as a badge via bold
+   weight + letter-spacing + solid primary fill. */
+.kc-bp-chip,
+.kc-rarity-pill,
+.kc-recent-row__source,
+.kc-crate-tag,
+.kc-crate-tag--ready,
+.kc-crate-cards-badge,
+.kc-page-header__season-chip,
+.kc-page-header__season-chip--live,
+.kc-page-header__season-chip--warn,
+.kc-sidebar-level,
+.kc-sidebar-new-badge,
+.kc-sidebar-ready-dot,
+.kc-item__dup {
+  border-radius: 0 !important;
+  border: 0 !important;
+}
+
+/* Buttons go flat: solid fill where primary, hollow otherwise.
+   No border, no radius, no shadow. Press-scale feedback survives
+   from the earlier polish block. */
+.kc-btn,
+.kc-btn--primary,
+.kc-btn--secondary,
+.kc-btn--ghost,
+.kc-close,
+.kc-sidebar-btn,
+.kc-sidebar-sublink,
+.kc-mobile-menu-btn {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.kc-btn--secondary,
+.kc-btn--ghost {
+  border: 0 !important;
+}
+
+/* Progress tracks + fills go square. The bar still reads as a bar
+   because it's a colored rectangle against a darker track. */
+.kc-crate__progress,
+.kc-crate__progress-fill,
+.kc-bp__tier-track,
+.kc-bp__tier-fill,
+.kc-quest__track,
+.kc-quest__fill,
+.kc-rarity-row__track,
+.kc-rarity-row__fill,
+.kc-welcome__track,
+.kc-welcome__fill,
+.kc-profile-head__track,
+.kc-profile-head__fill,
+.kc-page-header__xp-track,
+.kc-page-header__xp-fill,
+.kc-xpbar__track,
+.kc-xpbar__fill {
+  border-radius: 0 !important;
+}
+
+/* Avatars stay circular (they're not cards, they're portraits —
+   circular portraits are the standard across Kick's UI too). */
+.kc-avatar,
+.kc-avatar-chip__avatar,
+.kc-profile-head .kc-avatar {
+  border-radius: 50% !important;
+}
+
+/* Ready-dot / status-dot indicators stay round — they're dots. */
+.kc-sidebar-ready-dot,
+.kc-bp-chip__dot,
+.kc-page-header__season-chip-dot,
+.kc-item__rarity-dot {
+  border-radius: 50% !important;
+}
+
+/* Art containers (inline SVG holders) on PAGE surfaces shed any
+   frame — the corner brackets on the parent card do the framing job.
+   Note: .kc-preview__art and .kc-preview__art-frame stay out of this
+   list on purpose — they belong to the dialog modal and keep their
+   rounded frame. */
+.kc-item__art,
+.kc-crate__art,
+.kc-tier__art,
+.kc-slot__preview,
+.kc-recent-row__art,
+.kc-bp__hero-art,
+.kc-card__art,
+.kc-unlock__art,
+.kc-claim__art,
+.kc-claim__grid-art {
+  border-radius: 0 !important;
+  border: 0 !important;
+}
+
+/* Hover corner brackets anchor at inset:0 on flat cards (no more
+   -2px offset needed since there's no border to sit outside of).
+   Tighter bracket size reads crisper on flat surfaces. */
+.kc-crate::before,
+.kc-item::before,
+.kc-tier::before,
+.kc-cat::before,
+.kc-stat-tile::before,
+.kc-slot::before,
+.kc-recent-row__btn::before,
+.kc-quest::before,
+.kc-bp__hero::before {
+  inset: 0 !important;
+  background-size:
+    12px 2px, 2px 12px,
+    12px 2px, 2px 12px,
+    12px 2px, 2px 12px,
+    12px 2px, 2px 12px !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Restore dialog framing. The flat-aesthetic cascade above strips
+   radius + backgrounds from every .kc-* descendant; actual dialogs
+   (item preview, loadout picker, welcome card, crate opening, claim
+   reveal) still need their dialog chrome: scrim backdrop, rounded
+   opaque card, drop shadow. These rules come after the flat block
+   so at equal !important-specificity they win by source order.
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* Backdrop scrim + blur on the generic dialog overlay — used by
+   the Loadout picker and the item-preview modal. */
+.kc-overlay {
+  background: rgba(4,7,6,0.82) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* Main dialog shell — restore the framed-card look when NOT in
+   page mode. The kc-dialog--page variant stays flat (page doesn't
+   want a card around it). */
+.kc-dialog:not(.kc-dialog--page) {
+  background: #101012 !important;
+  border: 1px solid var(--kc-border) !important;
+  border-radius: clamp(12px, 1.6vw, 16px) !important;
+  box-shadow:
+    0 40px 120px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.03) !important;
+}
+
+/* Item preview modal — its own framed card. */
+.kc-preview {
+  background: #0f0f11 !important;
+  border: 1px solid var(--kc-border) !important;
+  border-radius: clamp(12px, 1.4vw, 16px) !important;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.6) !important;
+}
+.kc-preview__art-frame {
+  border-radius: clamp(12px, 1.6vw, 14px) !important;
+}
+.kc-preview__art {
+  border-radius: inherit !important;
+}
+
+/* Welcome card — framed dialog with scrim backdrop. Matches what
+   the welcome looked like before any flat pass. */
+.kc-welcome-dialog {
+  background: rgba(4,7,6,0.82) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+.kc-welcome-card {
+  background: #101012 !important;
+  border: 1px solid var(--kc-border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.6) !important;
+}
+.kc-welcome-card__hero {
+  border-top-left-radius: 16px !important;
+  border-top-right-radius: 16px !important;
+  overflow: hidden !important;
+}
+.kc-welcome-card__cta {
+  border-radius: 8px !important;
+}
+
+/* Buttons inside dialogs restore a small radius so they read as
+   buttons within a framed card (flat squares inside a rounded
+   card look broken). Page surface buttons stay flat. */
+.kc-overlay .kc-btn,
+.kc-welcome-dialog .kc-btn,
+.kc-preview .kc-btn {
+  border-radius: 6px !important;
+}
+
+/* Preview close (×) icon button — stays a rounded affordance. */
+.kc-preview__close,
+.kc-welcome-card__close {
+  border-radius: 8px !important;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Unified button system. Three states, full stop:
+     1. Default (any .kc-btn variant)  → primary green / black text
+     2. :disabled                       → locked gray, non-interactive
+     3. .kc-btn--danger                 → destructive red (sign out only)
+   Dropping the primary/secondary/ghost distinction collapses "click
+   this", "view this", "change this", "preview this", "claim this" into
+   a single affordance — matches Kick's own 2-variant discipline. No
+   more ghost outlines, no more size sub-variants driving a different
+   look. Kept in this block so reverting is one delete away.
+   ═════════════════════════════════════════════════════════════════════ */
+.kc-btn,
+.kc-btn--primary,
+.kc-btn--secondary,
+.kc-btn--ghost,
+.kc-btn--xs,
+.kc-btn--lg,
+.kc-btn--block {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  background: var(--kc-primary) !important;
+  color: #06140a !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  transition: background 140ms ease, color 140ms ease, transform 80ms ease !important;
+  white-space: nowrap !important;
+  text-transform: none !important;
+  font-variant-numeric: tabular-nums;
+}
+.kc-btn:hover:not(:disabled),
+.kc-btn--primary:hover:not(:disabled),
+.kc-btn--secondary:hover:not(:disabled),
+.kc-btn--ghost:hover:not(:disabled) {
+  background: var(--kc-primary-soft) !important;
+}
+.kc-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Locked state — disabled + the old "Not Ready" / "No Tokens" /
+   "Already claimed" affordances all resolve to the same gray. */
+.kc-btn:disabled,
+.kc-btn--primary:disabled,
+.kc-btn--secondary:disabled,
+.kc-btn--ghost:disabled {
+  background: var(--kc-surface-1) !important;
+  color: var(--kc-muted-dim) !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+/* Destructive — reserved for Sign out. Red surface, off-white text. */
+.kc-btn--danger,
+.kc-btn--danger:disabled {
+  background: var(--kc-danger) !important;
+  color: #140505 !important;
+}
+.kc-btn--danger:hover:not(:disabled) {
+  background: #ff8585 !important;
+}
+
+/* Block-width helper stays size-only — no visual change. */
+.kc-btn--block {
+  width: 100% !important;
+  display: flex !important;
+}
+
+/* Full-size button variant for hero CTAs (Sign in, Open Crate) —
+   bigger target, same look. */
+.kc-btn--lg {
+  padding: 14px 28px !important;
+  font-size: 16px !important;
+}
+
+/* Compact button variant for inline claims inside cards. */
+.kc-btn--xs {
+  padding: 5px 10px !important;
+  font-size: 12px !important;
+}
+
+/* Inside dialog contexts, the button gains its 6px radius back —
+   already declared above, this block re-affirms priority. */
+.kc-overlay .kc-btn,
+.kc-welcome-dialog .kc-btn,
+.kc-preview .kc-btn {
+  border-radius: 6px !important;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .kc-overlay,
   .kc-dialog,
+  .kc-page-surface,
   .kc-co,
   .kc-co__strip--animated,
   .kc-co__crate-svg,
@@ -2781,5 +3587,54 @@ html.kc-no-scroll { overflow: hidden !important; }
   .kc-sidebar-ready-dot {
     animation: none !important;
   }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   Emote picker / quick-emotes / chat rewriter
+   ═════════════════════════════════════════════════════════════════════ */
+.kc-epkr-art,
+.kc-qe-art {
+  display: inline-block;
+  line-height: 0;
+}
+.kc-epkr-art > svg,
+.kc-qe-art > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+#kc-emote-picker-tab svg {
+  width: 28px;
+  height: 28px;
+}
+#kc-emote-picker-section [data-kc-emote-slug]:not([disabled]) {
+  cursor: pointer;
+}
+#kc-emote-picker-section [data-kc-emote-slug][disabled] {
+  cursor: help;
+}
+#kc-quick-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+  margin-right: 4px;
+  border-right: 1px solid rgba(83, 252, 24, 0.18);
+}
+#kc-quick-row:empty {
+  display: none;
+}
+.kc-chat-emote {
+  display: inline-block;
+  vertical-align: middle;
+  width: 1.6em;
+  height: 1.6em;
+  margin: 0 1px;
+  line-height: 0;
+}
+.kc-chat-emote > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 `;

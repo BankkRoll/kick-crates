@@ -14,6 +14,7 @@ const SKIP_PATH_PREFIXES = [
   "/legal",
   "/login",
   "/signup",
+  "/kickcrates",
 ];
 
 /**

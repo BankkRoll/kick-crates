@@ -1,22 +1,19 @@
 import { useEffect, useState } from "preact/hooks";
-import {
-  isOpen as isMainDialogOpen,
-  openDialog,
-  subscribeDialog,
-} from "./dialogState.js";
+import { isPagePath, navigateToPage } from "../pageRouter.js";
 
-import { isExtensionContextAlive } from "../chromeSafe.js";
+import { isExtensionContextAlive } from "../../chromeSafe.js";
 
 const STORAGE_KEY = "kc_welcomed_v1";
 
 /**
- * First-visit welcome card that points new users at the sidebar button.
+ * First-visit welcome card that points new users at KickCrates.
  *
  * Appears once per browser profile: after a 1.2 s delay on first load of
- * a Kick channel page, unless the user has already opened the main
- * dialog. Dismissal (close button, backdrop click, either CTA) persists
+ * a Kick page, unless the user is already on a KickCrates page.
+ * Dismissal (close button, backdrop click, either CTA) persists
  * `kc_welcomed_v1` in `chrome.storage.local` so the card never re-shows.
- * Opening the main dialog from any other surface also auto-dismisses.
+ * "Open KickCrates" navigates the user to the Crates page instead of
+ * opening any in-page dialog — the pages ARE the app.
  */
 export function WelcomeDialog() {
   const [shown, setShown] = useState(false);
@@ -31,13 +28,13 @@ export function WelcomeDialog() {
       .then((v) => {
         if (cancelled) return;
         if (v && v[STORAGE_KEY]) return;
-        if (isMainDialogOpen()) {
+        if (isPagePath(location)) {
           markSeen();
           return;
         }
         const t = window.setTimeout(() => {
           if (cancelled) return;
-          if (isMainDialogOpen()) {
+          if (isPagePath(location)) {
             markSeen();
             return;
           }
@@ -47,16 +44,8 @@ export function WelcomeDialog() {
       })
       .catch(() => {});
 
-    const unsubDialog = subscribeDialog((open) => {
-      if (open) {
-        markSeen();
-        setShown(false);
-      }
-    });
-
     return () => {
       cancelled = true;
-      unsubDialog();
     };
   }, []);
 
@@ -72,11 +61,17 @@ export function WelcomeDialog() {
     window.setTimeout(() => {
       setShown(false);
       setClosing(false);
-      if (openAfter) openDialog();
+      if (openAfter) navigateToPage("crates");
     }, 180);
   }
 
+  // Render-time guard. The effect already skips setting `shown` when
+  // the user lands on a page URL, but if the state ever races we make
+  // absolutely sure the welcome scrim never renders on /kickcrates —
+  // users reported the sidebar darkening on fresh page mounts, which
+  // this backdrop is the prime suspect for.
   if (!shown) return null;
+  if (isPagePath(location)) return null;
 
   return (
     <div

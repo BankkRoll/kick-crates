@@ -1,7 +1,7 @@
 import { h } from "preact";
 import { useEffect } from "preact/hooks";
 import type { Id } from "../../../../../convex/_generated/dataModel.js";
-import { CloseIcon } from "../icons.js";
+import { CloseIcon } from "../icons.jsx";
 import { inlineSvg } from "../svgUri.js";
 
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
@@ -33,13 +33,13 @@ export type PreviewStat = {
  *
  * Renders the item's art, rarity-tinted frame, type/rarity line,
  * description, a filterable list of stat rows, and up to three action
- * buttons: the panel's primary `action`, an optional `secondaryAction`
- * (e.g. "Sell duplicate" when the caller's primary slot is already
- * occupied by "Claim tier"), and the built-in "Close". Closes on
- * Escape, backdrop click, the X button, or the "Close" button — any of
- * which invokes `props.onClose`. Callers own the handlers and the
- * `disabled` state so the same component can power "Claim tier",
- * "Equip", "Sell", etc. without the component knowing about panels.
+ * buttons: the panel's primary `action` (e.g. "Claim tier", "Equip"),
+ * an intrinsic "Sell 1 duplicate" button that surfaces automatically
+ * whenever `duplicates > 0` and the item carries a positive `sellValue`
+ * (so callers can't accidentally forget the sell affordance on a new
+ * surface), and the built-in "Close". Closes on Escape, backdrop click,
+ * the X button, or the "Close" button — any of which invokes
+ * `props.onClose`.
  */
 export function ItemPreviewDialog(props: {
   item: PreviewItem;
@@ -50,11 +50,10 @@ export function ItemPreviewDialog(props: {
     disabled?: boolean;
     onClick: () => void;
   } | null;
-  secondaryAction?: {
-    label: string;
-    disabled?: boolean;
-    onClick: () => void;
-  } | null;
+  owned?: boolean;
+  duplicates?: number;
+  onSell?: (itemId: Id<"items">) => void;
+  sellBusy?: boolean;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -69,6 +68,16 @@ export function ItemPreviewDialog(props: {
   const filteredStats = (props.stats ?? []).filter(
     (s): s is PreviewStat => s !== null && s !== undefined,
   );
+  const duplicates = props.duplicates ?? 0;
+  const sellValue = props.item.sellValue ?? 0;
+  // Show the Sell control whenever the user owns the item AND the item
+  // has a scrap value AND a sell handler is wired. When `duplicates === 0`
+  // the button renders in its locked state with a copy explaining why —
+  // silently hiding it before made the "need 2+ copies to sell" mechanic
+  // invisible to users who only had one copy.
+  const showSell =
+    props.owned === true && sellValue > 0 && props.onSell !== undefined;
+  const canSell = showSell && duplicates > 0;
 
   return (
     <div
@@ -142,16 +151,21 @@ export function ItemPreviewDialog(props: {
                   {props.action.label}
                 </button>
               ) : null}
-              {props.secondaryAction ? (
+              {showSell ? (
                 <button
-                  class="kc-btn kc-btn--secondary"
-                  disabled={props.secondaryAction.disabled}
-                  onClick={() => {
-                    props.secondaryAction!.onClick();
-                  }}
+                  class="kc-btn"
+                  disabled={!canSell || props.sellBusy}
+                  onClick={() => canSell && props.onSell!(props.item._id)}
                   type="button"
+                  title={
+                    canSell
+                      ? "Sell one duplicate copy for " + sellValue + " scrap"
+                      : "You need 2+ copies to sell — the first copy is permanent"
+                  }
                 >
-                  {props.secondaryAction.label}
+                  {canSell
+                    ? "Sell 1 duplicate · +" + sellValue + " scrap"
+                    : "No duplicates to sell"}
                 </button>
               ) : null}
               <button

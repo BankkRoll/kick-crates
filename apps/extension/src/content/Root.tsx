@@ -1,17 +1,17 @@
 import { h } from "preact";
 import { useCallback, useEffect, useState } from "preact/hooks";
-import { api } from "../../../../../convex/_generated/api.js";
-import type { Id } from "../../../../../convex/_generated/dataModel.js";
-import { isExtensionContextAlive, safeSendMessage } from "../../chromeSafe.js";
-import { applyAuthToReactive, getReactiveClient } from "../../convex.js";
-import type { AuthStatus } from "../../messaging.js";
-import { closeDialog, subscribeDialog } from "../dialogState.js";
-import { AlertIcon, CloseIcon } from "../icons.js";
-import { BattlePassPanel } from "./panels/BattlePass.js";
-import { CollectionPanel } from "./panels/Collection.js";
-import { CratesPanel } from "./panels/Crates.js";
-import { LoadoutPanel, type LoadoutSlots } from "./panels/Loadout.js";
-import { ProfilePanel } from "./panels/Profile.js";
+import { api } from "../../../../convex/_generated/api.js";
+import type { Id } from "../../../../convex/_generated/dataModel.js";
+import { isExtensionContextAlive, safeSendMessage } from "../chromeSafe.js";
+import { applyAuthToReactive, getReactiveClient } from "../convex.js";
+import type { AuthStatus } from "../messaging.js";
+import { subscribeItemPreview } from "./dialogState.js";
+import { AlertIcon, CloseIcon } from "./icons.jsx";
+import { BattlePassPanel } from "./pages/panels/BattlePass.jsx";
+import { CollectionPanel } from "./pages/panels/Collection.jsx";
+import { CratesPanel } from "./pages/panels/Crates.jsx";
+import { LoadoutPanel, type LoadoutSlots } from "./pages/panels/Loadout.jsx";
+import { ProfilePanel } from "./pages/panels/Profile.jsx";
 import {
   ClaimReveal,
   type ClaimPayload,
@@ -169,42 +169,24 @@ type TierClaimResult = {
 };
 
 /**
- * Top-level dialog shell.
+ * Main dashboard body. Used by both the in-page dialog (wrapped in the
+ * `.kc-overlay` backdrop by {@link Root}) and the full-page route shell
+ * (mounted into kick.com's 404 slot by the page router).
  *
- * Subscribes to {@link subscribeDialog} for open/close state, installs a
- * document-level `Escape` handler while open, and renders the backdrop
- * overlay. Clicks on the overlay (outside the inner dialog) close the
- * dialog. The actual content tree — auth, bootstrap, tabs, modals — is
- * kept in the private `DialogContents` component so its Convex
- * subscriptions tear down cleanly the moment the dialog closes.
+ * Behaves identically in both contexts except:
+ *  - In page mode, tab state is driven by the caller (URL-backed) instead
+ *    of local `useState`, and the close button / Esc-style affordances
+ *    delegate to `onClose` (e.g. navigate back to `/`) instead of the
+ *    global `closeDialog()` which only flips the overlay.
  */
-export function Root() {
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => subscribeDialog(setOpen), []);
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && open) closeDialog();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      class="kc-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) closeDialog();
-      }}
-    >
-      <DialogContents />
-    </div>
-  );
-}
-
-function DialogContents() {
+export function DialogContents(
+  props: {
+    tab?: TabKey;
+    onTabChange?: (t: TabKey) => void;
+    onClose?: () => void;
+    pageMode?: boolean;
+  } = {},
+) {
   const [auth, setAuth] = useState<AuthStatus | null>(null);
   const [me, setMe] = useState<Me | null>(null);
   const [season, setSeason] = useState<Season | null>(null);
@@ -215,13 +197,34 @@ function DialogContents() {
   const [items, setItems] = useState<Item[]>([]);
   const [tierRewards, setTierRewards] = useState<TierReward[]>([]);
   const [tierClaims, setTierClaims] = useState<TierClaim[]>([]);
-  const [tab, setTab] = useState<TabKey>("crates");
+  const [internalTab, setInternalTab] = useState<TabKey>("crates");
+  const tab: TabKey = props.tab ?? internalTab;
+  const setTab = (t: TabKey) => {
+    if (props.onTabChange) props.onTabChange(t);
+    else setInternalTab(t);
+  };
+  const pageMode = props.pageMode === true;
+  const closeRequest = () => {
+    props.onClose?.();
+  };
   const [busy, setBusy] = useState(false);
   const [sellBusy, setSellBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reveal, setReveal] = useState<CrateOpenResult | null>(null);
   const [welcomeKit, setWelcomeKit] = useState<WelcomeKit | null>(null);
   const [claim, setClaim] = useState<ClaimPayload | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<Id<"items"> | null>(
+    null,
+  );
+
+  useEffect(
+    () =>
+      subscribeItemPreview((itemId) => {
+        setTab("collection");
+        setPendingPreview(itemId as unknown as Id<"items">);
+      }),
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -558,9 +561,11 @@ function DialogContents() {
     [me?.loadout],
   );
 
+  const dialogClass = pageMode ? "kc-dialog kc-dialog--page" : "kc-dialog";
+
   if (auth === null) {
     return (
-      <div class="kc-dialog">
+      <div class={dialogClass}>
         <div class="kc-panel">
           <div class="kc-empty">Loading…</div>
         </div>
@@ -570,8 +575,15 @@ function DialogContents() {
 
   if (!auth.signedIn) {
     return (
-      <div class="kc-dialog">
-        <DialogHead me={null} username={null} avatar={null} season={null} />
+      <div class={dialogClass}>
+        <DialogHead
+          me={null}
+          username={null}
+          avatar={null}
+          season={null}
+          pageMode={pageMode}
+          onClose={closeRequest}
+        />
         <div class="kc-hero">
           <div class="kc-hero__logo">K</div>
           <h2 class="kc-hero__title">KickCrates</h2>
@@ -601,13 +613,15 @@ function DialogContents() {
 
   if (me && me.bannedAt) {
     return (
-      <div class="kc-dialog">
+      <div class={dialogClass}>
         <DialogHead
           me={me}
           username={auth.user.name}
           avatar={auth.user.profilePicture ?? me.kickProfilePicture ?? null}
           season={season}
           itemCount={inventory.length}
+          pageMode={pageMode}
+          onClose={closeRequest}
         />
         <div class="kc-hero">
           <div
@@ -622,7 +636,7 @@ function DialogContents() {
             {new Date(me.bannedAt).toLocaleDateString()}. Appeal via the
             extension support channel; progression is frozen in the meantime.
           </p>
-          <button class="kc-btn kc-btn--ghost" onClick={logout}>
+          <button class="kc-btn kc-btn--danger" onClick={logout}>
             Sign out
           </button>
         </div>
@@ -640,17 +654,32 @@ function DialogContents() {
   ) : null;
 
   return (
-    <div class="kc-dialog">
-      <DialogHead
-        me={me}
-        username={auth.user.name}
-        avatar={auth.user.profilePicture ?? me?.kickProfilePicture ?? null}
-        season={season}
-        itemCount={inventory.length}
-        onProfileClick={() => setTab("profile")}
-      />
+    <div class={dialogClass}>
+      {pageMode ? null : (
+        <DialogHead
+          me={me}
+          username={auth.user.name}
+          avatar={auth.user.profilePicture ?? me?.kickProfilePicture ?? null}
+          season={season}
+          itemCount={inventory.length}
+          onProfileClick={() => setTab("profile")}
+          pageMode={pageMode}
+          onClose={closeRequest}
+        />
+      )}
       {flaggedBanner}
-      <Tabs current={tab} onChange={setTab} />
+      {pageMode ? (
+        <PageHeader
+          tab={tab}
+          me={me}
+          username={auth.user.name}
+          avatar={auth.user.profilePicture ?? me?.kickProfilePicture ?? null}
+          season={season}
+          itemCount={inventory.length}
+        />
+      ) : (
+        <Tabs current={tab} onChange={setTab} />
+      )}
       {tab === "crates" ? (
         <CratesPanel
           crates={crates}
@@ -690,6 +719,8 @@ function DialogContents() {
           inventory={inventory}
           onSell={sellItem}
           sellBusy={sellBusy}
+          pendingPreview={pendingPreview}
+          onPendingPreviewConsumed={() => setPendingPreview(null)}
         />
       ) : null}
       {tab === "profile" ? (
@@ -698,8 +729,11 @@ function DialogContents() {
           username={auth.user.name}
           avatar={auth.user.profilePicture ?? me?.kickProfilePicture ?? null}
           inventory={inventory}
+          items={items}
           totalItemsInSeason={items.length}
           onLogout={logout}
+          onSell={sellItem}
+          sellBusy={sellBusy}
         />
       ) : null}
       {tab === "loadout" ? (
@@ -750,6 +784,8 @@ function DialogHead(props: {
   season: Season | null;
   itemCount?: number;
   onProfileClick?: () => void;
+  pageMode?: boolean;
+  onClose?: () => void;
 }) {
   const { me, username, season } = props;
   const signedIn = me !== null || username !== null;
@@ -759,6 +795,9 @@ function DialogHead(props: {
     me && me.xpForNextLevel > 0
       ? Math.min(100, (me.xpIntoLevel / me.xpForNextLevel) * 100)
       : 0;
+  const handleClose = () => {
+    props.onClose?.();
+  };
 
   if (!signedIn) {
     return (
@@ -768,13 +807,15 @@ function DialogHead(props: {
             KICK<span class="kc-brand__kick">CRATES</span>
           </div>
         </div>
-        <button
-          class="kc-close"
-          aria-label="Close KickCrates"
-          onClick={() => closeDialog()}
-        >
-          <CloseIcon />
-        </button>
+        {props.pageMode ? null : (
+          <button
+            class="kc-close"
+            aria-label="Close KickCrates"
+            onClick={handleClose}
+          >
+            <CloseIcon />
+          </button>
+        )}
       </div>
     );
   }
@@ -869,15 +910,148 @@ function DialogHead(props: {
             </div>
           </button>
         ) : null}
-        <button
-          class="kc-close"
-          aria-label="Close KickCrates"
-          onClick={() => closeDialog()}
-        >
-          <CloseIcon />
-        </button>
+        {props.pageMode ? null : (
+          <button
+            class="kc-close"
+            aria-label="Close KickCrates"
+            onClick={handleClose}
+          >
+            <CloseIcon />
+          </button>
+        )}
       </div>
     </div>
+  );
+}
+
+const TAB_TITLES: Record<TabKey, { h1: string; sub: string }> = {
+  crates: {
+    h1: "Crates",
+    sub: "Earn crates by watching streams. Open them to unlock cosmetics.",
+  },
+  battlepass: {
+    h1: "Battle Pass",
+    sub: "Climb tiers with Season XP. Free track, earn-only rewards.",
+  },
+  collection: {
+    h1: "Collection",
+    sub: "Everything you own, sorted by category and rarity.",
+  },
+  loadout: {
+    h1: "Loadout",
+    sub: "Equip the cosmetics chat sees when you post with the extension.",
+  },
+  profile: {
+    h1: "Profile",
+    sub: "Stats, recent drops, and account controls.",
+  },
+};
+
+/**
+ * Page-mode title block. Replaces the dialog's whole modal chrome
+ * (header + tab row) when the dashboard renders as a Kick page:
+ *
+ *  - Left column: H1 + short description, matching Kick's own page
+ *    headers (Following, Browse, Category).
+ *  - Right column: compact user-status strip (scrap, items, XP bar,
+ *    level + avatar). Sits where Kick's live-viewer count + follow /
+ *    subscribe buttons would sit on a channel page, so it feels like
+ *    it belongs in Kick's page-header rhythm.
+ *  - Below: season chip strip (only when a season is active).
+ *
+ * The sidebar accordion owns cross-tab navigation, so there's no
+ * in-page tab switcher alongside this header.
+ */
+function PageHeader(props: {
+  tab: TabKey;
+  me: Me | null;
+  username: string | null;
+  avatar: string | null;
+  season: Season | null;
+  itemCount: number;
+}) {
+  const { tab, me, season, username } = props;
+  const titles = TAB_TITLES[tab];
+  const items = props.itemCount;
+  const level = me?.level ?? 1;
+  const progressPct =
+    me && me.xpForNextLevel > 0
+      ? Math.min(100, (me.xpIntoLevel / me.xpForNextLevel) * 100)
+      : 0;
+
+  return (
+    <header class="kc-page-header">
+      <div class="kc-page-header__row">
+        <div class="kc-page-header__titles">
+          <h1 class="kc-page-header__h1">{titles.h1}</h1>
+          <p class="kc-page-header__sub">{titles.sub}</p>
+        </div>
+        {me || username ? (
+          <div class="kc-page-header__stats">
+            <div
+              class="kc-page-header__stat"
+              title="Scrap — currency from duplicate drops"
+            >
+              <span class="kc-page-header__stat-v">
+                {compactNumber(me?.scrap ?? 0)}
+              </span>
+              <span class="kc-page-header__stat-l">Scrap</span>
+            </div>
+            <div class="kc-page-header__stat" title="Items collected">
+              <span class="kc-page-header__stat-v">{items}</span>
+              <span class="kc-page-header__stat-l">Items</span>
+            </div>
+            <div
+              class="kc-page-header__xp"
+              title={
+                me
+                  ? "Level " +
+                    me.level +
+                    " — " +
+                    me.xpIntoLevel +
+                    " / " +
+                    me.xpForNextLevel +
+                    " XP to Level " +
+                    (me.level + 1)
+                  : "Sign in to earn XP"
+              }
+            >
+              <span class="kc-page-header__xp-lvl">LV {level}</span>
+              <div class="kc-page-header__xp-track">
+                <div
+                  class="kc-page-header__xp-fill"
+                  style={{ width: progressPct.toFixed(1) + "%" }}
+                />
+              </div>
+              <span class="kc-page-header__xp-num">
+                {me
+                  ? me.xpIntoLevel.toLocaleString() +
+                    " / " +
+                    me.xpForNextLevel.toLocaleString()
+                  : "— / —"}
+              </span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+      {season ? (
+        <div class="kc-page-header__season">
+          <span class="kc-page-header__season-chip kc-page-header__season-chip--live">
+            <span class="kc-page-header__season-chip-dot" aria-hidden="true" />
+            LIVE
+          </span>
+          <span class="kc-page-header__season-chip">
+            Season {season.seasonNumber}
+          </span>
+          <span class="kc-page-header__season-chip">{season.name}</span>
+          {season.bonusXpMultiplier > 1 ? (
+            <span class="kc-page-header__season-chip kc-page-header__season-chip--warn">
+              +{Math.round((season.bonusXpMultiplier - 1) * 100)}% XP
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+    </header>
   );
 }
 
@@ -906,21 +1080,26 @@ function Tabs(props: { current: TabKey; onChange: (t: TabKey) => void }) {
   );
 }
 
-function IconCrate() {
+/** Crate-box glyph for the Crates tab in both the dialog tab row and
+ * the sidebar submenu. Kept here (rather than `icons.tsx`) so the tab
+ * visuals live next to the tab enum they belong to. */
+export function IconCrate() {
   return (
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
       <path d="M2 5l6-3 6 3v6l-6 3-6-3V5zm2 1.3v3.8l4 2v-3.8l-4-2zm8 0l-4 2v3.8l4-2V6.3z" />
     </svg>
   );
 }
-function IconStar() {
+/** Five-point-star glyph for the Battle Pass tab. */
+export function IconStar() {
   return (
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
       <path d="M8 1l2.2 4.5 5 .7-3.6 3.5.8 5L8 12.3 3.6 14.7l.8-5L.8 6.2l5-.7L8 1z" />
     </svg>
   );
 }
-function IconGrid() {
+/** 2×2 grid glyph for the Collection tab. */
+export function IconGrid() {
   return (
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
       <rect x="2" y="2" width="5" height="5" rx="1" />
@@ -930,7 +1109,8 @@ function IconGrid() {
     </svg>
   );
 }
-function IconUser() {
+/** Person silhouette for the Loadout tab. */
+export function IconUser() {
   return (
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
       <circle cx="8" cy="6" r="3" />
@@ -938,7 +1118,8 @@ function IconUser() {
     </svg>
   );
 }
-function IconProfile() {
+/** Decorated star for the Profile tab. */
+export function IconProfile() {
   return (
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
       <path d="M8 1l1.9 3.8 4.2.6-3 3 .7 4.1L8 10.6l-3.8 2 .7-4.1-3-3 4.2-.6L8 1z" />

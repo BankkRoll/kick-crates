@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "preact/hooks";
+
 import type { Id } from "../../../../../../convex/_generated/dataModel.js";
+import { ItemPreviewDialog } from "../../dialogs/ItemPreviewDialog.jsx";
 import { inlineSvg } from "../../svgUri.js";
-import { ItemPreviewDialog } from "../ItemPreviewDialog.js";
 
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
@@ -444,7 +445,7 @@ export function BattlePassPanel(props: {
             const itemId = pr.item._id;
             const inv = props.inventory.find((r) => r.itemId === itemId);
             const duplicates = inv?.duplicates ?? 0;
-            const sellable = duplicates > 0 && pr.item.sellValue > 0;
+            const owned = inv !== undefined;
             return (
               <ItemPreviewDialog
                 item={pr.item}
@@ -482,7 +483,7 @@ export function BattlePassPanel(props: {
                         accent: "muted",
                       }
                     : null,
-                  duplicates > 0
+                  owned
                     ? {
                         label: "Copies",
                         value: "×" + (duplicates + 1),
@@ -501,16 +502,10 @@ export function BattlePassPanel(props: {
                       }
                     : null
                 }
-                secondaryAction={
-                  sellable
-                    ? {
-                        label:
-                          "Sell 1 duplicate · +" + pr.item.sellValue + " scrap",
-                        disabled: props.sellBusy,
-                        onClick: () => props.onSell(itemId),
-                      }
-                    : null
-                }
+                owned={owned}
+                duplicates={duplicates}
+                onSell={props.onSell}
+                sellBusy={props.sellBusy}
                 onClose={() => setPreviewTier(null)}
               />
             );

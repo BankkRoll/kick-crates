@@ -564,3 +564,51 @@ export const seedSeason1 = internalMutation({
     };
   },
 });
+
+/**
+ * One-shot migration for the `scrapValueOnDupe` → `sellValue` rename.
+ *
+ * Walks every row in `items` and:
+ *  - Sets `sellValue` from the legacy `scrapValueOnDupe` value when
+ *    the new field is missing, so the UI's sell button lights up on
+ *    duplicates without waiting for a full re-seed.
+ *  - Unsets the legacy field so schema strictness doesn't flag rows
+ *    that still carry an unknown extra key.
+ *
+ * Run once after deploying the schema rename:
+ *   npx convex run seed:migrateSellValue
+ *
+ * Safe to re-run — no-op on rows that already carry only `sellValue`.
+ */
+export const migrateSellValue = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("items").collect();
+    let filled = 0;
+    let cleaned = 0;
+    for (const row of rows) {
+      const raw = row as unknown as {
+        sellValue?: number;
+        scrapValueOnDupe?: number;
+      };
+      const legacy = raw.scrapValueOnDupe;
+      const hasNew = typeof raw.sellValue === "number";
+      const hasLegacy = typeof legacy === "number";
+      if (!hasNew && hasLegacy) {
+        await ctx.db.patch(row._id, {
+          sellValue: legacy,
+          scrapValueOnDupe: undefined,
+        } as unknown as { sellValue: number });
+        filled++;
+        continue;
+      }
+      if (hasLegacy) {
+        await ctx.db.patch(row._id, {
+          scrapValueOnDupe: undefined,
+        } as unknown as Record<string, never>);
+        cleaned++;
+      }
+    }
+    return { total: rows.length, filled, cleaned };
+  },
+});

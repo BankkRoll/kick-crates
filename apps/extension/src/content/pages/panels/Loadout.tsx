@@ -1,7 +1,7 @@
-import { h } from "preact";
 import { useMemo, useState } from "preact/hooks";
+
 import type { Id } from "../../../../../../convex/_generated/dataModel.js";
-import { CloseIcon } from "../../icons.js";
+import { CloseIcon } from "../../icons.jsx";
 import { inlineSvg } from "../../svgUri.js";
 
 type Rarity = "common" | "uncommon" | "rare" | "epic" | "legendary";

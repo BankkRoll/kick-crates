@@ -5,13 +5,10 @@ Third-party battle pass, crates, and XP progression for [Kick.com](https://kick.
 All cosmetic art is generated inline at seed time (via [DiceBear](https://dicebear.com) + hand-crafted SVG templates).
 
 <div style="display: flex; gap: 12px;">
-
-  <img src="https://github.com/user-attachments/assets/d5a3dcbf-f217-44b7-b5c7-f7c8bc82703a" width="33%" />
-
-  <img src="https://github.com/user-attachments/assets/0148dc68-07d4-47df-8850-3591a64969be" width="33%" />
-
-  <img src="https://github.com/user-attachments/assets/23975b0f-de57-4c53-8a0c-8c9ca74f4964" width="33%" />
-
+  <img src="https://github.com/user-attachments/assets/230903f1-753d-4005-8497-fb058b291634" width="48%" />
+  <img src="https://github.com/user-attachments/assets/4c639c30-4209-405b-8af6-b997155729ab" width="48%" />
+  <img src="https://github.com/user-attachments/assets/5a58a42f-d26d-450a-8553-2ea8e2c1525c" width="48%" />
+  <img src="https://github.com/user-attachments/assets/dd57056a-7831-4539-87e5-8378729981d8" width="48%" />
 </div>
 
 ## Features
